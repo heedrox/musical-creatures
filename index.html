@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>uTuneIt - Detector de Voz</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎵 uTuneIt</h1>
+            <p class="subtitle">Canta y observa tu frecuencia en tiempo real</p>
+        </header>
+
+        <div class="player-selector">
+            <label for="playerCount">Número de jugadores:</label>
+            <select id="playerCount" class="select-input">
+                <option value="1">1 jugador</option>
+                <option value="2" selected>2 jugadores</option>
+                <option value="3">3 jugadores</option>
+                <option value="4">4 jugadores</option>
+                <option value="5">5 jugadores</option>
+            </select>
+        </div>
+
+        <div class="controls">
+            <button id="startBtn" class="btn btn-primary">Iniciar</button>
+            <button id="stopBtn" class="btn btn-secondary" disabled>Detener</button>
+        </div>
+
+        <div class="status" id="status">
+            <p>Presiona "Iniciar" para comenzar</p>
+        </div>
+
+        <div class="canvas-container">
+            <canvas id="frequencyCanvas"></canvas>
+        </div>
+
+        <div class="info-panel">
+            <div class="info-item">
+                <span class="label">Frecuencia:</span>
+                <span id="frequencyDisplay" class="value">-- Hz</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Nota:</span>
+                <span id="noteDisplay" class="value">--</span>
+            </div>
+        </div>
+        
+        <div class="legend" id="legend">
+            <p><span class="legend-color" style="background: #667eea;"></span> Jugador 1</p>
+            <p><span class="legend-color" style="background: #f093fb;"></span> Jugador 2</p>
+            <p><span class="legend-color" style="background: #4facfe;"></span> Jugador 3</p>
+            <p><span class="legend-color" style="background: #00f2fe;"></span> Jugador 4</p>
+            <p><span class="legend-color" style="background: #43e97b;"></span> Jugador 5</p>
+        </div>
+    </div>
+
+    <script type="module" src="main.js"></script>
+</body>
+</html>
+
