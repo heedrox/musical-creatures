@@ -158,12 +158,22 @@ h1 {
 
 .info-panel {
     display: flex;
-    gap: 30px;
-    justify-content: center;
+    flex-direction: column;
+    gap: 15px;
     padding: 20px;
     background: #f8f9fa;
     border-radius: 10px;
     margin-bottom: 15px;
+}
+
+.player-info {
+    display: flex;
+    gap: 30px;
+    justify-content: center;
+    padding: 10px;
+    background: white;
+    border-radius: 8px;
+    padding-left: 15px;
 }
 
 .legend {

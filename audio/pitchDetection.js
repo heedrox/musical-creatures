@@ -63,9 +63,10 @@ export class PitchDetection {
      * Detecta múltiples frecuencias usando Pitchfinder y análisis de frecuencia
      * @param {Float32Array} timeData - Datos de tiempo del audio
      * @param {number} count - Número de frecuencias a detectar
+     * @param {Float32Array} frequencyData - Datos de frecuencia (FFT) para análisis adicional
      * @returns {Array<number>} Array de frecuencias en Hz (ordenadas por prominencia)
      */
-    detectMultiplePitches(timeData, count = 2) {
+    detectMultiplePitches(timeData, count = 2, frequencyData = null) {
         if (!timeData || timeData.length === 0 || count < 1) {
             return [];
         }
@@ -78,8 +79,12 @@ export class PitchDetection {
             pitches.push(primaryPitch);
         }
         
-        // Si necesitamos más frecuencias, usar análisis de frecuencia
-        if (count > 1 && pitches.length > 0) {
+        // Si necesitamos más frecuencias y tenemos datos de frecuencia, usar análisis FFT
+        if (count > 1 && frequencyData && frequencyData.length > 0) {
+            const additionalPitches = this.findPitchesFromFrequencyData(frequencyData, pitches, count - 1);
+            pitches.push(...additionalPitches);
+        } else if (count > 1 && pitches.length > 0) {
+            // Fallback: intentar con AMDF si no hay datos de frecuencia
             const additionalPitches = this.findAdditionalPitches(timeData, pitches, count - 1);
             pitches.push(...additionalPitches);
         }
@@ -87,14 +92,18 @@ export class PitchDetection {
         // Si no encontramos la primera con YIN, intentar con AMDF
         if (pitches.length === 0) {
             try {
-                const amdfPitch = this.amdfDetector(timeData);
+                const audioData = Array.from(timeData);
+                const amdfPitch = this.amdfDetector(audioData);
                 if (amdfPitch && amdfPitch > 0 && 
                     amdfPitch >= this.minFrequency && 
                     amdfPitch <= this.maxFrequency) {
                     pitches.push(amdfPitch);
                     
                     // Buscar más si es necesario
-                    if (count > 1) {
+                    if (count > 1 && frequencyData && frequencyData.length > 0) {
+                        const additionalPitches = this.findPitchesFromFrequencyData(frequencyData, pitches, count - 1);
+                        pitches.push(...additionalPitches);
+                    } else if (count > 1) {
                         const additionalPitches = this.findAdditionalPitches(timeData, pitches, count - 1);
                         pitches.push(...additionalPitches);
                     }
@@ -109,57 +118,129 @@ export class PitchDetection {
 
     /**
      * Encuentra frecuencias adicionales usando análisis de frecuencia (FFT)
+     * @param {Float32Array} frequencyData - Datos de frecuencia del FFT
+     * @param {Array<number>} existingPitches - Frecuencias ya detectadas
+     * @param {number} count - Número de frecuencias adicionales a encontrar
+     * @returns {Array<number>} Array de frecuencias adicionales
+     */
+    findPitchesFromFrequencyData(frequencyData, existingPitches, count) {
+        const additionalPitches = [];
+        const minSeparation = 0.15; // Separación mínima entre frecuencias (15%)
+        const fftSize = frequencyData.length * 2; // El tamaño del FFT es el doble de los bins
+        
+        // Encontrar picos en el espectro de frecuencia
+        const peaks = [];
+        const binWidth = this.sampleRate / fftSize;
+        
+        // Buscar picos locales en el rango de frecuencias válidas
+        for (let i = 1; i < frequencyData.length - 1; i++) {
+            const magnitude = frequencyData[i];
+            const prevMagnitude = frequencyData[i - 1];
+            const nextMagnitude = frequencyData[i + 1];
+            
+            // Detectar pico local (mayor que vecinos)
+            if (magnitude > prevMagnitude && magnitude > nextMagnitude && magnitude > 0.1) {
+                const frequency = i * binWidth;
+                
+                // Solo considerar frecuencias en el rango válido
+                if (frequency >= this.minFrequency && frequency <= this.maxFrequency) {
+                    peaks.push({
+                        frequency: frequency,
+                        magnitude: magnitude,
+                        bin: i
+                    });
+                }
+            }
+        }
+        
+        // Ordenar por magnitud (más prominente primero)
+        peaks.sort((a, b) => b.magnitude - a.magnitude);
+        
+        // Filtrar picos que sean armónicos o muy cercanos a frecuencias existentes
+        for (const peak of peaks) {
+            if (additionalPitches.length >= count) {
+                break;
+            }
+            
+            let isDuplicate = false;
+            
+            // Verificar contra frecuencias existentes
+            for (const existing of [...existingPitches, ...additionalPitches]) {
+                const separation = Math.abs(peak.frequency - existing) / existing;
+                
+                // Si están muy cerca, es duplicado
+                if (separation < minSeparation) {
+                    isDuplicate = true;
+                    break;
+                }
+                
+                // Verificar si es armónico (múltiplo o divisor)
+                const ratio = peak.frequency / existing;
+                const roundedRatio = Math.round(ratio);
+                const roundedInverse = Math.round(1 / ratio);
+                
+                // Si la razón está cerca de un número entero, es armónico
+                if (roundedRatio > 1 && Math.abs(ratio - roundedRatio) < 0.1) {
+                    isDuplicate = true;
+                    break;
+                }
+                
+                if (roundedInverse > 1 && Math.abs(1/ratio - roundedInverse) < 0.1) {
+                    isDuplicate = true;
+                    break;
+                }
+            }
+            
+            // Solo añadir si no es duplicado y tiene suficiente energía
+            if (!isDuplicate && peak.magnitude > 0.1) { // Umbral mínimo de magnitud
+                additionalPitches.push(peak.frequency);
+            }
+        }
+        
+        return additionalPitches;
+    }
+
+    /**
+     * Encuentra frecuencias adicionales usando AMDF como fallback
      * @param {Float32Array} timeData - Datos de tiempo del audio
      * @param {Array<number>} existingPitches - Frecuencias ya detectadas
      * @param {number} count - Número de frecuencias adicionales a encontrar
      * @returns {Array<number>} Array de frecuencias adicionales
      */
     findAdditionalPitches(timeData, existingPitches, count) {
-        // Para múltiples pitches, usamos un enfoque simple:
-        // Intentar detectar con diferentes rangos de frecuencia
-        // o usar análisis de frecuencia para encontrar picos adicionales
-        
+        // Fallback: intentar con diferentes algoritmos
         const additionalPitches = [];
-        const minSeparation = 0.15; // Separación mínima entre frecuencias (15%)
-        
-        // Convertir Float32Array a Array normal
+        const minSeparation = 0.15;
         const audioData = Array.from(timeData);
         
-        // Crear detectores con diferentes rangos para encontrar otras frecuencias
-        for (let i = 0; i < count && additionalPitches.length < count; i++) {
-            // Intentar con AMDF como detector alternativo
-            try {
-                const pitch = this.amdfDetector(audioData);
+        // Intentar con DynamicWavelet si está disponible
+        try {
+            const dynamicWavelet = DynamicWavelet({
+                sampleRate: this.sampleRate,
+                minFrequency: this.minFrequency,
+                maxFrequency: this.maxFrequency
+            });
+            
+            const pitch = dynamicWavelet(audioData);
+            if (pitch && pitch > 0 && 
+                pitch >= this.minFrequency && 
+                pitch <= this.maxFrequency) {
                 
-                if (pitch && pitch > 0 && 
-                    pitch >= this.minFrequency && 
-                    pitch <= this.maxFrequency) {
-                    
-                    // Verificar que no sea similar a las frecuencias ya detectadas
-                    let isDuplicate = false;
-                    for (const existing of [...existingPitches, ...additionalPitches]) {
-                        const separation = Math.abs(pitch - existing) / existing;
-                        if (separation < minSeparation) {
-                            isDuplicate = true;
-                            break;
-                        }
-                        
-                        // Verificar si es armónico
-                        const ratio = pitch / existing;
-                        if (Math.abs(ratio - Math.round(ratio)) < 0.1 || 
-                            Math.abs(1/ratio - Math.round(1/ratio)) < 0.1) {
-                            isDuplicate = true;
-                            break;
-                        }
-                    }
-                    
-                    if (!isDuplicate) {
-                        additionalPitches.push(pitch);
+                let isDuplicate = false;
+                for (const existing of existingPitches) {
+                    const separation = Math.abs(pitch - existing) / existing;
+                    if (separation < minSeparation) {
+                        isDuplicate = true;
+                        break;
                     }
                 }
-            } catch (error) {
-                // Continuar con el siguiente intento
+                
+                if (!isDuplicate) {
+                    additionalPitches.push(pitch);
+                }
             }
+        } catch (error) {
+            // Continuar con otros métodos
         }
         
         return additionalPitches;

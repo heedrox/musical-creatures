@@ -21,8 +21,7 @@ class VoicePitchGame {
         this.startBtn = document.getElementById('startBtn');
         this.stopBtn = document.getElementById('stopBtn');
         this.statusEl = document.getElementById('status');
-        this.frequencyDisplay = document.getElementById('frequencyDisplay');
-        this.noteDisplay = document.getElementById('noteDisplay');
+        this.infoPanel = document.getElementById('infoPanel');
         this.playerCountSelect = document.getElementById('playerCount');
         this.legendEl = document.getElementById('legend');
         
@@ -32,6 +31,9 @@ class VoicePitchGame {
         // Modo de detección múltiple (por defecto: 2 frecuencias)
         this.detectMultipleFrequencies = true;
         this.maxFrequencies = parseInt(this.playerCountSelect.value);
+        
+        // Colores para cada jugador
+        this.playerColors = ['#667eea', '#f093fb', '#4facfe', '#00f2fe', '#43e97b'];
         
         // Actualizar leyenda inicial
         this.updateLegend();
@@ -99,8 +101,7 @@ class VoicePitchGame {
         this.playerCountSelect.disabled = false; // Rehabilitar selector
         
         this.updateStatus('Captura detenida', 'info');
-        this.frequencyDisplay.textContent = '-- Hz';
-        this.noteDisplay.textContent = '--';
+        this.updateFrequencyDisplays([]);
     }
 
     analyze() {
@@ -108,15 +109,16 @@ class VoicePitchGame {
             return;
         }
 
-        // Obtener datos de tiempo para análisis de pitch
+        // Obtener datos de tiempo y frecuencia para análisis de pitch
         const timeData = this.audioCapture.getTimeData();
+        const frequencyData = this.audioCapture.getFrequencyDataMagnitude(); // Usar magnitud, no dB
         
         if (timeData && this.pitchDetection) {
             let frequencies = [];
             
             if (this.detectMultipleFrequencies) {
-                // Detectar múltiples frecuencias
-                frequencies = this.pitchDetection.detectMultiplePitches(timeData, this.maxFrequencies);
+                // Detectar múltiples frecuencias (pasar también datos de frecuencia para mejor detección)
+                frequencies = this.pitchDetection.detectMultiplePitches(timeData, this.maxFrequencies, frequencyData);
             } else {
                 // Detectar solo una frecuencia
                 const frequency = this.pitchDetection.detectPitch(timeData);
@@ -130,18 +132,7 @@ class VoicePitchGame {
             this.graphRenderer.draw();
             
             // Actualizar displays (mostrar todas las frecuencias detectadas)
-            if (frequencies.length > 0) {
-                // Mostrar todas las frecuencias
-                const freqText = frequencies.map(f => `${Math.round(f)} Hz`).join(', ');
-                this.frequencyDisplay.textContent = freqText;
-                
-                // Mostrar todas las notas
-                const notesText = frequencies.map(f => this.pitchDetection.frequencyToNote(f)).join(', ');
-                this.noteDisplay.textContent = notesText;
-            } else {
-                this.frequencyDisplay.textContent = '-- Hz';
-                this.noteDisplay.textContent = '--';
-            }
+            this.updateFrequencyDisplays(frequencies);
         }
         
         // Continuar el loop
@@ -164,7 +155,6 @@ class VoicePitchGame {
 
     updateLegend() {
         const playerCount = this.maxFrequencies;
-        const colors = ['#667eea', '#f093fb', '#4facfe', '#00f2fe', '#43e97b'];
         
         // Limpiar leyenda
         this.legendEl.innerHTML = '';
@@ -172,9 +162,65 @@ class VoicePitchGame {
         // Añadir solo los jugadores seleccionados
         for (let i = 0; i < playerCount; i++) {
             const p = document.createElement('p');
-            p.innerHTML = `<span class="legend-color" style="background: ${colors[i]};"></span> Jugador ${i + 1}`;
+            p.innerHTML = `<span class="legend-color" style="background: ${this.playerColors[i]};"></span> Jugador ${i + 1}`;
             this.legendEl.appendChild(p);
         }
+    }
+
+    updateFrequencyDisplays(frequencies) {
+        // Limpiar el panel
+        this.infoPanel.innerHTML = '';
+        
+        if (frequencies.length === 0) {
+            // Mostrar estado vacío
+            const emptyItem = document.createElement('div');
+            emptyItem.className = 'info-item';
+            emptyItem.innerHTML = `
+                <span class="label">Frecuencia:</span>
+                <span class="value">-- Hz</span>
+            `;
+            this.infoPanel.appendChild(emptyItem);
+            
+            const emptyNote = document.createElement('div');
+            emptyNote.className = 'info-item';
+            emptyNote.innerHTML = `
+                <span class="label">Nota:</span>
+                <span class="value">--</span>
+            `;
+            this.infoPanel.appendChild(emptyNote);
+            return;
+        }
+        
+        // Mostrar cada frecuencia detectada con su color
+        frequencies.forEach((frequency, index) => {
+            const color = this.playerColors[index % this.playerColors.length];
+            const note = this.pitchDetection.frequencyToNote(frequency);
+            
+            // Crear contenedor para este jugador
+            const playerInfo = document.createElement('div');
+            playerInfo.className = 'player-info';
+            playerInfo.style.borderLeft = `4px solid ${color}`;
+            
+            // Frecuencia
+            const freqItem = document.createElement('div');
+            freqItem.className = 'info-item';
+            freqItem.innerHTML = `
+                <span class="label">Jugador ${index + 1} - Frecuencia:</span>
+                <span class="value" style="color: ${color};">${Math.round(frequency)} Hz</span>
+            `;
+            playerInfo.appendChild(freqItem);
+            
+            // Nota
+            const noteItem = document.createElement('div');
+            noteItem.className = 'info-item';
+            noteItem.innerHTML = `
+                <span class="label">Jugador ${index + 1} - Nota:</span>
+                <span class="value" style="color: ${color};">${note}</span>
+            `;
+            playerInfo.appendChild(noteItem);
+            
+            this.infoPanel.appendChild(playerInfo);
+        });
     }
 }
 

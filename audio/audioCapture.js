@@ -8,6 +8,7 @@ export class AudioCapture {
         this.analyser = null;
         this.microphone = null;
         this.dataArray = null;
+        this.frequencyDataArray = null; // Para datos de frecuencia en magnitud
         this.isCapturing = false;
     }
 
@@ -36,6 +37,7 @@ export class AudioCapture {
             
             const bufferLength = this.analyser.frequencyBinCount;
             this.dataArray = new Float32Array(bufferLength);
+            this.frequencyDataArray = new Float32Array(bufferLength); // Para datos de frecuencia en magnitud
 
             // Conectar el micrófono al analizador
             this.microphone = this.audioContext.createMediaStreamSource(stream);
@@ -54,8 +56,8 @@ export class AudioCapture {
     }
 
     /**
-     * Obtiene los datos de frecuencia actuales
-     * @returns {Float32Array} Array con los datos de frecuencia
+     * Obtiene los datos de frecuencia actuales (en dB)
+     * @returns {Float32Array} Array con los datos de frecuencia en dB
      */
     getFrequencyData() {
         if (!this.analyser || !this.isCapturing) {
@@ -64,6 +66,27 @@ export class AudioCapture {
         
         this.analyser.getFloatFrequencyData(this.dataArray);
         return this.dataArray;
+    }
+
+    /**
+     * Obtiene los datos de frecuencia en magnitud (no en dB)
+     * @returns {Float32Array} Array con los datos de frecuencia en magnitud
+     */
+    getFrequencyDataMagnitude() {
+        if (!this.analyser || !this.isCapturing) {
+            return null;
+        }
+        
+        // getByteFrequencyData devuelve valores de 0-255, los convertimos a 0-1
+        const byteData = new Uint8Array(this.analyser.frequencyBinCount);
+        this.analyser.getByteFrequencyData(byteData);
+        
+        // Convertir a Float32Array normalizado (0-1)
+        for (let i = 0; i < byteData.length; i++) {
+            this.frequencyDataArray[i] = byteData[i] / 255.0;
+        }
+        
+        return this.frequencyDataArray;
     }
 
     /**
