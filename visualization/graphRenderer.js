@@ -24,6 +24,11 @@ export class GraphRenderer {
         this.logMaxFreq = Math.log(this.maxFrequency);
         this.logRange = this.logMaxFreq - this.logMinFreq;
         
+        // Nota objetivo
+        this.targetFrequency = null;
+        this.targetTolerance = null; // En semitonos
+        this.targetNoteName = null; // Nombre de la nota objetivo (ej: "E4")
+        
         // Configurar tamaño del canvas
         this.resize();
         window.addEventListener('resize', () => this.resize());
@@ -86,6 +91,11 @@ export class GraphRenderer {
         const minFreq = this.minFrequency;
         const maxFreq = this.maxFrequency;
         const freqRange = this.freqRange;
+        
+        // Dibujar zona resaltada del objetivo (antes de las líneas de frecuencia)
+        if (this.targetFrequency !== null && this.targetTolerance !== null) {
+            this.drawTargetZone(padding, graphWidth, graphHeight, minFreq, maxFreq);
+        }
         
         // Determinar cuántas frecuencias diferentes hay
         const maxFreqCount = Math.max(...this.frequencyHistory.map(f => 
@@ -163,6 +173,11 @@ export class GraphRenderer {
                     this.ctx.fill();
                 }
             }
+        }
+        
+        // Dibujar línea objetivo (después de las líneas de frecuencia para que quede visible)
+        if (this.targetFrequency !== null) {
+            this.drawTargetLine(padding, graphWidth, graphHeight, minFreq, maxFreq);
         }
         
         // Dibujar rejilla y etiquetas
@@ -246,6 +261,106 @@ export class GraphRenderer {
         // Restaurar estilo
         this.ctx.strokeStyle = '#2a2a3e';
         this.ctx.fillStyle = '#888';
+    }
+
+    /**
+     * Establece la frecuencia objetivo a mostrar en el gráfico
+     * @param {number|null} frequency - Frecuencia en Hz, o null para ocultar
+     * @param {string|null} noteName - Nombre de la nota (ej: "E4"), opcional
+     */
+    setTargetFrequency(frequency, noteName = null) {
+        this.targetFrequency = frequency;
+        this.targetNoteName = noteName;
+    }
+
+    /**
+     * Establece la tolerancia para la zona resaltada alrededor del objetivo
+     * @param {number|null} semitones - Tolerancia en semitonos, o null para ocultar zona
+     */
+    setTargetTolerance(semitones) {
+        this.targetTolerance = semitones;
+    }
+
+    /**
+     * Dibuja la zona resaltada alrededor de la frecuencia objetivo
+     * @param {number} padding - Padding del gráfico
+     * @param {number} graphWidth - Ancho del área del gráfico
+     * @param {number} graphHeight - Alto del área del gráfico
+     * @param {number} minFreq - Frecuencia mínima del rango
+     * @param {number} maxFreq - Frecuencia máxima del rango
+     */
+    drawTargetZone(padding, graphWidth, graphHeight, minFreq, maxFreq) {
+        if (this.targetFrequency === null || this.targetTolerance === null) {
+            return;
+        }
+
+        // Calcular el rango de frecuencias: targetFreq * 2^(±tolerance/12)
+        const minTargetFreq = this.targetFrequency * Math.pow(2, -this.targetTolerance / 12);
+        const maxTargetFreq = this.targetFrequency * Math.pow(2, this.targetTolerance / 12);
+
+        // Limitar al rango visible del gráfico
+        const clampedMinFreq = Math.max(minFreq, Math.min(maxFreq, minTargetFreq));
+        const clampedMaxFreq = Math.max(minFreq, Math.min(maxFreq, maxTargetFreq));
+
+        // Calcular posiciones Y usando escala logarítmica
+        const normalizedMinFreq = (Math.log(clampedMinFreq) - this.logMinFreq) / this.logRange;
+        const normalizedMaxFreq = (Math.log(clampedMaxFreq) - this.logMinFreq) / this.logRange;
+        
+        const yMin = this.canvas.height - padding - (normalizedMaxFreq * graphHeight);
+        const yMax = this.canvas.height - padding - (normalizedMinFreq * graphHeight);
+        const zoneHeight = yMax - yMin;
+
+        // Dibujar rectángulo semitransparente
+        this.ctx.fillStyle = 'rgba(251, 191, 36, 0.15)';
+        this.ctx.fillRect(padding, yMin, graphWidth, zoneHeight);
+    }
+
+    /**
+     * Dibuja la línea horizontal en la frecuencia objetivo
+     * @param {number} padding - Padding del gráfico
+     * @param {number} graphWidth - Ancho del área del gráfico
+     * @param {number} graphHeight - Alto del área del gráfico
+     * @param {number} minFreq - Frecuencia mínima del rango
+     * @param {number} maxFreq - Frecuencia máxima del rango
+     */
+    drawTargetLine(padding, graphWidth, graphHeight, minFreq, maxFreq) {
+        if (this.targetFrequency === null) {
+            return;
+        }
+
+        // Limitar al rango visible del gráfico
+        const clampedFreq = Math.max(minFreq, Math.min(maxFreq, this.targetFrequency));
+        
+        // Calcular posición Y usando escala logarítmica
+        const normalizedFreq = (Math.log(clampedFreq) - this.logMinFreq) / this.logRange;
+        const y = this.canvas.height - padding - (normalizedFreq * graphHeight);
+
+        // Dibujar línea horizontal
+        this.ctx.strokeStyle = '#fbbf24';
+        this.ctx.lineWidth = 2;
+        this.ctx.setLineDash([]); // Línea sólida
+        this.ctx.beginPath();
+        this.ctx.moveTo(padding, y);
+        this.ctx.lineTo(this.canvas.width - padding, y);
+        this.ctx.stroke();
+
+        // Dibujar etiqueta con nota y frecuencia
+        if (this.targetNoteName) {
+            this.ctx.font = 'bold 12px sans-serif';
+            this.ctx.textAlign = 'right';
+            this.ctx.textBaseline = 'middle';
+            this.ctx.fillStyle = '#fbbf24';
+            
+            const labelText = `${this.targetNoteName} (${this.targetFrequency.toFixed(1)} Hz)`;
+            this.ctx.fillText(labelText, this.canvas.width - padding - 5, y);
+        } else {
+            // Si no hay nombre de nota, mostrar solo la frecuencia
+            this.ctx.font = 'bold 12px sans-serif';
+            this.ctx.textAlign = 'right';
+            this.ctx.textBaseline = 'middle';
+            this.ctx.fillStyle = '#fbbf24';
+            this.ctx.fillText(`${this.targetFrequency.toFixed(1)} Hz`, this.canvas.width - padding - 5, y);
+        }
     }
 
     /**

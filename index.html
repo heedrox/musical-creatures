@@ -24,6 +24,13 @@
             </select>
         </div>
 
+        <div class="game-mode-toggle">
+            <label>
+                <input type="checkbox" id="gameModeToggle" checked>
+                Modo juego: Criatura
+            </label>
+        </div>
+
         <div class="controls">
             <button id="startBtn" class="btn btn-primary">Iniciar</button>
             <button id="stopBtn" class="btn btn-secondary" disabled>Detener</button>
@@ -35,6 +42,13 @@
 
         <div class="canvas-container">
             <canvas id="frequencyCanvas"></canvas>
+        </div>
+
+        <div class="creature-status" id="creatureStatus">
+            <div class="status-text" id="statusText">CALMA 😌</div>
+            <div class="energy-bar-container">
+                <div class="energy-bar" id="energyBar"></div>
+            </div>
         </div>
 
         <div class="info-panel" id="infoPanel">

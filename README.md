@@ -54,13 +54,19 @@ El servidor se abrirá automáticamente en http://localhost:3000
 ## Uso
 
 1. **Selecciona el número de jugadores** (1-5) en el selector
-2. Haz clic en **"Iniciar"**
-3. **Permite el acceso al micrófono** cuando el navegador lo solicite
-4. **Canta** y observa cómo:
-   - La gráfica muestra tu frecuencia en tiempo real
+2. **Activa/desactiva el modo juego** con el toggle "Modo juego: Criatura" (activado por defecto)
+3. Haz clic en **"Iniciar"**
+4. **Permite el acceso al micrófono** cuando el navegador lo solicite
+5. **Canta** y observa cómo:
+   - **Modo juego**: La criatura reacciona a la cohesión armónica de las voces (CALMA cuando están juntas, CAOS cuando están separadas)
+   - **Modo gráfica**: La gráfica muestra tu frecuencia en tiempo real
    - Se actualiza la nota musical correspondiente
    - Cada jugador aparece con su color único
    - Las frecuencias se muestran en el panel de información
+
+### Modo Juego: La Criatura Armónica
+
+En modo juego, una criatura blob reacciona visualmente a cuán juntas están las frecuencias detectadas. Cuando varias personas cantan en armonía (frecuencias cercanas musicalmente), la criatura está en CALMA. Si las frecuencias están muy separadas, entra en CAOS. El objetivo es mantener la criatura en CALMA cantando juntos.
 
 ### Múltiples Jugadores
 
@@ -92,6 +98,21 @@ Cuando seleccionas 2-5 jugadores:
 - Navegador moderno con soporte para Web Audio API
 - HTTPS o localhost (requerido para acceso al micrófono)
 - Node.js 20+ (para desarrollo)
+
+## Parámetros Ajustables
+
+Los parámetros del juego "La Criatura Armónica" se pueden ajustar en `/game/creatureGame.js` al inicio del archivo:
+
+- **`STD_DIVISOR`**: 6 - Semitonos para mapear desviación estándar a cohesión (valores menores = más sensible)
+- **`ENERGY_LERP`**: 0.15 - Factor de suavizado del filtro exponencial (0-1, valores menores = más suave)
+- **`CALMA_THRESHOLD_ENTER`**: 0.75 - Umbral de energía para entrar en estado CALMA
+- **`CALMA_THRESHOLD_EXIT`**: 0.70 - Umbral de energía para salir de CALMA (histéresis)
+- **`CAOS_THRESHOLD_ENTER`**: 0.45 - Umbral de energía para entrar en estado CAOS
+- **`CAOS_THRESHOLD_EXIT`**: 0.50 - Umbral de energía para salir de CAOS (histéresis)
+- **`NO_FREQ_DECAY`**: 0.05 - Velocidad de decaimiento cuando no hay frecuencias detectadas
+- **`NO_FREQ_TIMEOUT`**: 500 - Milisegundos sin frecuencias antes de empezar a decaer hacia calma
+- **`FREQ_MIN`**: 80 - Frecuencia mínima válida en Hz
+- **`FREQ_MAX`**: 1200 - Frecuencia máxima válida en Hz
 
 ## Próximos Pasos
 
