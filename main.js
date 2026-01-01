@@ -289,15 +289,44 @@ class VoicePitchGame {
                 allowTaint: true
             });
 
-            // Convertir canvas a blob
-            canvas.toBlob(async (blob) => {
+            // Obtener el texto de compartir antes de modificar el canvas
+            const gameState = getSequenceGameState();
+            const score = gameState.survivalTime ? `${gameState.survivalTime.toFixed(1)}s` : '0.0s';
+            const shareText = `¡Conseguí ${score} en Criaturas Musicales! ¿Cuánto puedes conseguir tú? https://musical-creatures.web.app/ 🎵`;
+
+            // Agregar texto directamente en la imagen
+            const ctx = canvas.getContext('2d');
+            const padding = 40;
+            const textHeight = 60;
+            
+            // Crear un nuevo canvas más grande para incluir el texto
+            const finalCanvas = document.createElement('canvas');
+            finalCanvas.width = canvas.width;
+            finalCanvas.height = canvas.height + padding + textHeight;
+            const finalCtx = finalCanvas.getContext('2d');
+            
+            // Dibujar la imagen original
+            finalCtx.drawImage(canvas, 0, 0);
+            
+            // Dibujar fondo semi-transparente para el texto
+            finalCtx.fillStyle = 'rgba(10, 10, 10, 0.85)';
+            finalCtx.fillRect(0, canvas.height, finalCanvas.width, padding + textHeight);
+            
+            // Configurar estilo del texto
+            finalCtx.fillStyle = '#ffffff';
+            finalCtx.font = 'bold 32px "Exo 2", sans-serif';
+            finalCtx.textAlign = 'center';
+            finalCtx.textBaseline = 'middle';
+            
+            // Dibujar el texto centrado
+            const textY = canvas.height + padding + (textHeight / 2);
+            finalCtx.fillText(shareText, finalCanvas.width / 2, textY);
+
+            // Convertir canvas final a blob
+            finalCanvas.toBlob(async (blob) => {
                 if (!blob) {
                     throw new Error('Error al generar la imagen');
                 }
-
-                const gameState = getSequenceGameState();
-                const score = gameState.survivalTime ? `${gameState.survivalTime.toFixed(1)}s` : '0.0s';
-                const shareText = `¡Conseguí ${score} en Criaturas Musicales! ¿Cuánto puedes conseguir tú? https://musical-creatures.web.app/ 🎵`;
 
                 // Detectar si estamos en móvil y si el navegador soporta Web Share API
                 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
