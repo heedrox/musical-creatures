@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Criaturas Musicales - Cyberpunk</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0a0a0a;
+            padding: 20px;
+            color: #00ff41;
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(0, 255, 65, 0.03) 2px,
+                    rgba(0, 255, 65, 0.03) 4px
+                );
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: #0a0a0a;
+            border: 3px solid #00ff41;
+            clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px));
+            padding: 20px;
+            box-shadow: 
+                0 0 20px rgba(0, 255, 65, 0.5),
+                inset 0 0 20px rgba(0, 255, 65, 0.1);
+            position: relative;
+            z-index: 1;
+        }
+        
+        .container::before {
+            content: '';
+            position: absolute;
+            top: -3px;
+            left: -3px;
+            right: -3px;
+            bottom: -3px;
+            background: linear-gradient(45deg, #00ff41, #00cc33, #00ff41);
+            z-index: -1;
+            animation: borderGlow 2s linear infinite;
+        }
+        
+        @keyframes borderGlow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 2px solid #00ff41;
+            margin-bottom: 20px;
+            position: relative;
+        }
+        
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 30%;
+            height: 2px;
+            background: #00ff41;
+            box-shadow: 0 0 10px #00ff41;
+        }
+        
+        .header h1 {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: #00ff41;
+            text-shadow: 
+                0 0 10px #00ff41,
+                0 0 20px #00ff41;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+        
+        .start-btn {
+            padding: 12px 28px;
+            background: transparent;
+            color: #00ff41;
+            border: 2px solid #00ff41;
+            clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+            font-size: 1em;
+            font-weight: 700;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            position: relative;
+            transition: all 0.3s;
+        }
+        
+        .start-btn:hover {
+            background: #00ff41;
+            color: #0a0a0a;
+            box-shadow: 0 0 20px #00ff41;
+            transform: scale(1.05);
+        }
+        
+        .start-btn::before {
+            content: '▶';
+            margin-right: 8px;
+        }
+        
+        .main-content {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+        
+        .graph-section {
+            flex: 1;
+        }
+        
+        .graph-container {
+            width: 100%;
+            height: 400px;
+            background: #000;
+            border: 2px solid #00ff41;
+            clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 15px, 100% 100%, 15px 100%, 0 calc(100% - 15px));
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 0 30px rgba(0, 255, 65, 0.3);
+        }
+        
+        .graph-lines {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .target-line {
+            position: absolute;
+            width: 100%;
+            height: 3px;
+            background: #00ff41;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 2;
+            box-shadow: 0 0 10px #00ff41;
+        }
+        
+        .target-line::before {
+            content: '[OBJETIVO]';
+            position: absolute;
+            left: 10px;
+            top: -12px;
+            font-size: 0.7em;
+            color: #00ff41;
+            background: #0a0a0a;
+            padding: 4px 8px;
+            font-weight: 700;
+            border: 1px solid #00ff41;
+            clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 4px 100%, 0 calc(100% - 4px));
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .frequency-line {
+            position: absolute;
+            width: 90%;
+            height: 4px;
+            background: #ff0080;
+            top: 40%;
+            left: 5%;
+            z-index: 1;
+            box-shadow: 0 0 15px #ff0080;
+            clip-path: polygon(0 0, 100% 0, calc(100% - 4px) 100%, 4px 100%);
+        }
+        
+        .frequency-line::after {
+            content: '↑ +12.5dB';
+            position: absolute;
+            right: -90px;
+            top: -10px;
+            font-size: 0.75em;
+            color: #ff0080;
+            font-weight: 700;
+            text-shadow: 0 0 5px #ff0080;
+        }
+        
+        .zone-green {
+            position: absolute;
+            width: 100%;
+            height: 20%;
+            background: rgba(0, 255, 65, 0.15);
+            top: 45%;
+            border-top: 2px dashed #00ff41;
+            border-bottom: 2px dashed #00ff41;
+            clip-path: polygon(0 0, 100% 0, calc(100% - 10px) 100%, 10px 100%);
+        }
+        
+        .zone-label {
+            position: absolute;
+            right: 10px;
+            top: 48%;
+            font-size: 0.7em;
+            color: #00ff41;
+            background: #0a0a0a;
+            padding: 4px 8px;
+            border: 1px solid #00ff41;
+            font-weight: 700;
+            clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 4px 100%, 0 calc(100% - 4px));
+            text-transform: uppercase;
+        }
+        
+        .graph-axes {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 30px;
+            border-top: 1px solid #00ff41;
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 10px;
+            font-size: 0.7em;
+            color: #00ff41;
+            font-family: 'Courier New', monospace;
+            background: rgba(0, 0, 0, 0.5);
+        }
+        
+        .right-section {
+            flex: 0 0 280px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .score-section {
+            text-align: center;
+            padding: 15px;
+            background: #000;
+            border: 2px solid #00ff41;
+            clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.4);
+        }
+        
+        .score-label {
+            font-size: 0.85em;
+            color: #00ff41;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 5px;
+            font-weight: 700;
+        }
+        
+        .score-value {
+            font-size: 2.5em;
+            font-weight: 700;
+            color: #00ff41;
+            text-shadow: 
+                0 0 10px #00ff41,
+                0 0 20px #00ff41;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .creature-container {
+            width: 100%;
+            background: #000;
+            border: 2px solid #00ff41;
+            clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.4);
+        }
+        
+        .creature-placeholder {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, #00ff41 0%, #00cc33 100%);
+            border: 3px solid #00ff41;
+            clip-path: polygon(20% 0%, 80% 0%, 100% 20%, 100% 80%, 80% 100%, 20% 100%, 0% 80%, 0% 20%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3em;
+            box-shadow: 
+                0 0 20px #00ff41,
+                inset 0 0 20px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+        
+        .creature-placeholder::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 10px,
+                rgba(0, 0, 0, 0.1) 10px,
+                rgba(0, 0, 0, 0.1) 20px
+            );
+        }
+        
+        .creature-status-text {
+            font-size: 1.1em;
+            color: #00ff41;
+            font-weight: 700;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 5px #00ff41;
+        }
+        
+        .creature-life {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .life-label {
+            font-size: 0.9em;
+            color: #00ff41;
+            font-weight: 700;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 25px;
+            background: #000;
+            border: 2px solid #00ff41;
+            clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            width: 85%;
+            background: linear-gradient(90deg, #00ff41 0%, #00cc33 100%);
+            box-shadow: 0 0 10px #00ff41;
+            position: relative;
+        }
+        
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(
+                90deg,
+                transparent,
+                transparent 4px,
+                rgba(0, 0, 0, 0.2) 4px,
+                rgba(0, 0, 0, 0.2) 8px
+            );
+        }
+        
+        @media (max-width: 800px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .right-section {
+                flex: 1;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Criaturas Musicales</h1>
+            <button class="start-btn">Iniciar</button>
+        </div>
+        
+        <div class="main-content">
+            <div class="graph-section">
+                <div class="graph-container">
+                    <div class="graph-lines">
+                        <div class="zone-green">
+                            <div class="zone-label">Zona segura</div>
+                        </div>
+                        <div class="target-line"></div>
+                        <div class="frequency-line"></div>
+                    </div>
+                    <div class="graph-axes">
+                        <span>-5s</span>
+                        <span>-4s</span>
+                        <span>-3s</span>
+                        <span>-2s</span>
+                        <span>-1s</span>
+                        <span>NOW</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="right-section">
+                <div class="score-section">
+                    <div class="score-label">Puntuación</div>
+                    <div class="score-value">45.2s</div>
+                </div>
+                
+                <div class="creature-container">
+                    <div class="creature-placeholder">⚡</div>
+                    <div class="creature-status-text">CALMA</div>
+                    <div class="creature-life">
+                        <div class="life-label">Vida: 85%</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+

@@ -24,10 +24,15 @@ export class GraphRenderer {
         this.logMaxFreq = Math.log(this.maxFrequency);
         this.logRange = this.logMaxFreq - this.logMinFreq;
         
-        // Nota objetivo
+        // Nota objetivo (modo simple)
         this.targetFrequency = null;
         this.targetTolerance = null; // En semitonos
         this.targetNoteName = null; // Nombre de la nota objetivo (ej: "E4")
+        
+        // Secuencia de notas objetivo (modo secuencia)
+        this.sequenceTargets = null; // Array de { frequency, noteName }
+        this.currentTargetIndex = null; // Índice de la nota actual en la secuencia
+        this.showOnlyCurrentTarget = false; // Si es true, solo muestra la nota actual (no todas)
         
         // Configurar tamaño del canvas
         this.resize();
@@ -75,14 +80,6 @@ export class GraphRenderer {
         this.ctx.fillStyle = '#0f0f1e';
         this.ctx.fillRect(0, 0, width, height);
         
-        if (this.frequencyHistory.length < 2) {
-            // Dibujar rejilla incluso sin datos
-            const padding = 20;
-            const graphHeight = height - padding * 2;
-            this.drawGrid(this.minFrequency, this.maxFrequency, padding, graphHeight);
-            return;
-        }
-        
         const padding = 20;
         const graphWidth = width - padding * 2;
         const graphHeight = height - padding * 2;
@@ -92,8 +89,32 @@ export class GraphRenderer {
         const maxFreq = this.maxFrequency;
         const freqRange = this.freqRange;
         
+        if (this.frequencyHistory.length < 2) {
+            // Dibujar zona resaltada del objetivo incluso sin datos de frecuencia
+            if (this.sequenceTargets && this.sequenceTargets.length > 0) {
+                this.drawSequenceTargets(padding, graphWidth, graphHeight, minFreq, maxFreq);
+            } else if (this.targetFrequency !== null && this.targetTolerance !== null) {
+                this.drawTargetZone(padding, graphWidth, graphHeight, minFreq, maxFreq);
+            }
+            
+            // Dibujar líneas objetivo incluso sin datos de frecuencia
+            if (this.sequenceTargets && this.sequenceTargets.length > 0) {
+                this.drawSequenceTargetLines(padding, graphWidth, graphHeight, minFreq, maxFreq);
+            } else if (this.targetFrequency !== null) {
+                this.drawTargetLine(padding, graphWidth, graphHeight, minFreq, maxFreq);
+            }
+            
+            // Dibujar rejilla
+            this.drawGrid(this.minFrequency, this.maxFrequency, padding, graphHeight);
+            return;
+        }
+        
         // Dibujar zona resaltada del objetivo (antes de las líneas de frecuencia)
-        if (this.targetFrequency !== null && this.targetTolerance !== null) {
+        if (this.sequenceTargets && this.sequenceTargets.length > 0) {
+            // Modo secuencia: dibujar todas las notas objetivo
+            this.drawSequenceTargets(padding, graphWidth, graphHeight, minFreq, maxFreq);
+        } else if (this.targetFrequency !== null && this.targetTolerance !== null) {
+            // Modo simple: dibujar una sola nota objetivo
             this.drawTargetZone(padding, graphWidth, graphHeight, minFreq, maxFreq);
         }
         
@@ -175,8 +196,12 @@ export class GraphRenderer {
             }
         }
         
-        // Dibujar línea objetivo (después de las líneas de frecuencia para que quede visible)
-        if (this.targetFrequency !== null) {
+        // Dibujar líneas objetivo (después de las líneas de frecuencia para que queden visibles)
+        if (this.sequenceTargets && this.sequenceTargets.length > 0) {
+            // Modo secuencia: dibujar líneas de todas las notas
+            this.drawSequenceTargetLines(padding, graphWidth, graphHeight, minFreq, maxFreq);
+        } else if (this.targetFrequency !== null) {
+            // Modo simple: dibujar una sola línea objetivo
             this.drawTargetLine(padding, graphWidth, graphHeight, minFreq, maxFreq);
         }
         
@@ -257,15 +282,7 @@ export class GraphRenderer {
             this.ctx.lineTo(this.canvas.width - padding, y);
             this.ctx.stroke();
             
-            // Etiqueta con nota y frecuencia (solo para notas importantes)
-            if (isImportantNote) {
-                this.ctx.fillStyle = '#aaa';
-                this.ctx.fillText(note.name, 5, y - 2);
-                this.ctx.fillStyle = '#666';
-                this.ctx.font = '9px monospace';
-                this.ctx.fillText(Math.round(note.frequency) + ' Hz', 5, y + 10);
-                this.ctx.font = '11px monospace';
-            }
+            // No dibujar etiquetas de notas ni frecuencias
         }
         
         // Restaurar estilo
@@ -289,6 +306,24 @@ export class GraphRenderer {
      */
     setTargetTolerance(semitones) {
         this.targetTolerance = semitones;
+    }
+
+    /**
+     * Establece la secuencia de notas objetivo (modo secuencia)
+     * @param {Array<{frequency: number, noteName: string}>|null} targets - Array de notas objetivo, o null para desactivar
+     */
+    setSequenceTargets(targets) {
+        this.sequenceTargets = targets;
+    }
+
+    /**
+     * Establece el índice de la nota actual en la secuencia
+     * @param {number|null} index - Índice de la nota actual, o null
+     * @param {boolean} showOnlyCurrent - Si es true, solo muestra la nota actual (no todas)
+     */
+    setCurrentTargetIndex(index, showOnlyCurrent = false) {
+        this.currentTargetIndex = index;
+        this.showOnlyCurrentTarget = showOnlyCurrent;
     }
 
     /**
@@ -326,7 +361,118 @@ export class GraphRenderer {
     }
 
     /**
-     * Dibuja la línea horizontal en la frecuencia objetivo
+     * Dibuja todas las notas objetivo de la secuencia
+     * @param {number} padding - Padding del gráfico
+     * @param {number} graphWidth - Ancho del área del gráfico
+     * @param {number} graphHeight - Alto del área del gráfico
+     * @param {number} minFreq - Frecuencia mínima del rango
+     * @param {number} maxFreq - Frecuencia máxima del rango
+     */
+    drawSequenceTargets(padding, graphWidth, graphHeight, minFreq, maxFreq) {
+        if (!this.sequenceTargets || this.sequenceTargets.length === 0) {
+            return;
+        }
+
+        const tolerance = this.targetTolerance !== null ? this.targetTolerance : 0.5;
+        
+        // Dibujar zona resaltada solo para la nota actual (si existe)
+        if (this.currentTargetIndex !== null && this.currentTargetIndex >= 0 && 
+            this.currentTargetIndex < this.sequenceTargets.length) {
+            const currentTarget = this.sequenceTargets[this.currentTargetIndex];
+            
+            const minTargetFreq = currentTarget.frequency * Math.pow(2, -tolerance / 12);
+            const maxTargetFreq = currentTarget.frequency * Math.pow(2, tolerance / 12);
+            
+            const clampedMinFreq = Math.max(minFreq, Math.min(maxFreq, minTargetFreq));
+            const clampedMaxFreq = Math.max(minFreq, Math.min(maxFreq, maxTargetFreq));
+            
+            const normalizedMinFreq = (Math.log(clampedMinFreq) - this.logMinFreq) / this.logRange;
+            const normalizedMaxFreq = (Math.log(clampedMaxFreq) - this.logMinFreq) / this.logRange;
+            
+            const yMin = this.canvas.height - padding - (normalizedMaxFreq * graphHeight);
+            const yMax = this.canvas.height - padding - (normalizedMinFreq * graphHeight);
+            const zoneHeight = yMax - yMin;
+            
+            // Dibujar rectángulo semitransparente
+            this.ctx.fillStyle = 'rgba(251, 191, 36, 0.15)';
+            this.ctx.fillRect(padding, yMin, graphWidth, zoneHeight);
+        }
+    }
+
+    /**
+     * Dibuja las líneas de todas las notas objetivo de la secuencia
+     * @param {number} padding - Padding del gráfico
+     * @param {number} graphWidth - Ancho del área del gráfico
+     * @param {number} graphHeight - Alto del área del gráfico
+     * @param {number} minFreq - Frecuencia mínima del rango
+     * @param {number} maxFreq - Frecuencia máxima del rango
+     */
+    drawSequenceTargetLines(padding, graphWidth, graphHeight, minFreq, maxFreq) {
+        if (!this.sequenceTargets || this.sequenceTargets.length === 0) {
+            return;
+        }
+
+        // Si showOnlyCurrentTarget es true, solo dibujar la nota actual
+        if (this.showOnlyCurrentTarget && this.currentTargetIndex !== null && 
+            this.currentTargetIndex >= 0 && this.currentTargetIndex < this.sequenceTargets.length) {
+            // Solo dibujar la nota actual
+            const target = this.sequenceTargets[this.currentTargetIndex];
+            const clampedFreq = Math.max(minFreq, Math.min(maxFreq, target.frequency));
+            const normalizedFreq = (Math.log(clampedFreq) - this.logMinFreq) / this.logRange;
+            const y = this.canvas.height - padding - (normalizedFreq * graphHeight);
+
+            // Nota actual: línea amarilla brillante y gruesa
+            this.ctx.strokeStyle = '#fbbf24';
+            this.ctx.lineWidth = 3;
+            this.ctx.setLineDash([]);
+            this.ctx.beginPath();
+            this.ctx.moveTo(padding, y);
+            this.ctx.lineTo(this.canvas.width - padding, y);
+            this.ctx.stroke();
+
+            // No dibujar etiquetas de notas ni frecuencias
+            return;
+        }
+
+        // Dibujar todas las notas (modo normal)
+        this.sequenceTargets.forEach((target, index) => {
+            const isCurrent = this.currentTargetIndex === index;
+            
+            // Limitar al rango visible del gráfico
+            const clampedFreq = Math.max(minFreq, Math.min(maxFreq, target.frequency));
+            
+            // Calcular posición Y usando escala logarítmica
+            const normalizedFreq = (Math.log(clampedFreq) - this.logMinFreq) / this.logRange;
+            const y = this.canvas.height - padding - (normalizedFreq * graphHeight);
+
+            // Estilo según si es la nota actual o no
+            if (isCurrent) {
+                // Nota actual: línea amarilla brillante y gruesa
+                this.ctx.strokeStyle = '#fbbf24';
+                this.ctx.lineWidth = 3;
+                this.ctx.setLineDash([]); // Línea sólida
+            } else {
+                // Otras notas: líneas más tenues y punteadas
+                this.ctx.strokeStyle = 'rgba(251, 191, 36, 0.4)';
+                this.ctx.lineWidth = 1.5;
+                this.ctx.setLineDash([5, 5]); // Línea punteada
+            }
+
+            // Dibujar línea horizontal
+            this.ctx.beginPath();
+            this.ctx.moveTo(padding, y);
+            this.ctx.lineTo(this.canvas.width - padding, y);
+            this.ctx.stroke();
+
+            // No dibujar etiquetas de notas ni frecuencias
+        });
+
+        // Restaurar estilo de línea
+        this.ctx.setLineDash([]);
+    }
+
+    /**
+     * Dibuja la línea horizontal en la frecuencia objetivo (modo simple)
      * @param {number} padding - Padding del gráfico
      * @param {number} graphWidth - Ancho del área del gráfico
      * @param {number} graphHeight - Alto del área del gráfico
@@ -354,23 +500,7 @@ export class GraphRenderer {
         this.ctx.lineTo(this.canvas.width - padding, y);
         this.ctx.stroke();
 
-        // Dibujar etiqueta con nota y frecuencia
-        if (this.targetNoteName) {
-            this.ctx.font = 'bold 12px sans-serif';
-            this.ctx.textAlign = 'right';
-            this.ctx.textBaseline = 'middle';
-            this.ctx.fillStyle = '#fbbf24';
-            
-            const labelText = `${this.targetNoteName} (${this.targetFrequency.toFixed(1)} Hz)`;
-            this.ctx.fillText(labelText, this.canvas.width - padding - 5, y);
-        } else {
-            // Si no hay nombre de nota, mostrar solo la frecuencia
-            this.ctx.font = 'bold 12px sans-serif';
-            this.ctx.textAlign = 'right';
-            this.ctx.textBaseline = 'middle';
-            this.ctx.fillStyle = '#fbbf24';
-            this.ctx.fillText(`${this.targetFrequency.toFixed(1)} Hz`, this.canvas.width - padding - 5, y);
-        }
+        // No dibujar etiquetas de notas ni frecuencias
     }
 
     /**
@@ -379,7 +509,19 @@ export class GraphRenderer {
     clear() {
         this.frequencyHistory = [];
         this.timeHistory = [];
+        // No limpiar objetivos aquí - se mantienen para el modo secuencia
         this.draw();
+    }
+
+    /**
+     * Limpia los objetivos (modo simple y secuencia)
+     */
+    clearTargets() {
+        this.targetFrequency = null;
+        this.targetTolerance = null;
+        this.targetNoteName = null;
+        this.sequenceTargets = null;
+        this.currentTargetIndex = null;
     }
 }
 

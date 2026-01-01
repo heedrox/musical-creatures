@@ -4,7 +4,7 @@
 import { AudioCapture } from './audio/audioCapture.js';
 import { PitchDetection } from './audio/pitchDetection.js';
 import { GraphRenderer } from './visualization/graphRenderer.js';
-import { updateCreatureGame, renderCreatureGame, getCreatureState, startGame, resetGame } from './game/creatureGame.js';
+import { updateSequenceGame, renderSequenceGame, getSequenceGameState, startSequenceGame, resetSequenceGame } from './game/sequenceGame.js';
 
 class VoicePitchGame {
     constructor() {
@@ -29,6 +29,9 @@ class VoicePitchGame {
         this.gameModeToggle = document.getElementById('gameModeToggle');
         this.statusText = document.getElementById('statusText');
         this.energyBar = document.getElementById('energyBar');
+        this.lifeValue = document.getElementById('lifeValue');
+        this.timeValue = document.getElementById('timeValue');
+        this.noteValue = document.getElementById('noteValue');
         
         const canvas = document.getElementById('frequencyCanvas');
         this.graphRenderer = new GraphRenderer(canvas);
@@ -87,7 +90,9 @@ class VoicePitchGame {
             
             // Inicializar juego si está en modo juego
             if (this.gameMode) {
-                startGame();
+                // Obtener AudioContext del sistema de captura para síntesis de audio
+                const audioContext = this.audioCapture.audioContext || null;
+                startSequenceGame(audioContext);
             }
             
             this.updateStatus('🎤 Canta y observa tu frecuencia en tiempo real', 'success');
@@ -113,12 +118,11 @@ class VoicePitchGame {
         this.graphRenderer.clear();
         
         // Limpiar visualización de objetivo
-        this.graphRenderer.setTargetFrequency(null);
-        this.graphRenderer.setTargetTolerance(null);
+        this.graphRenderer.clearTargets();
         
         // Reiniciar juego si está en modo juego
         if (this.gameMode) {
-            resetGame();
+            resetSequenceGame();
         }
         
         this.startBtn.disabled = false;
@@ -132,7 +136,17 @@ class VoicePitchGame {
             this.statusText.textContent = 'CALMA 😌';
         }
         if (this.energyBar) {
-            this.energyBar.style.width = '90%';
+            this.energyBar.style.width = '100%';
+            this.energyBar.style.backgroundColor = '#4ade80';
+        }
+        if (this.lifeValue) {
+            this.lifeValue.textContent = '100%';
+        }
+        if (this.timeValue) {
+            this.timeValue.textContent = '0.0s';
+        }
+        if (this.noteValue) {
+            this.noteValue.textContent = '--';
         }
     }
 
@@ -150,52 +164,89 @@ class VoicePitchGame {
         const timeData = this.audioCapture.getTimeData();
         
         if (timeData && this.pitchDetection) {
-            // Detectar solo una frecuencia (un solo pitch)
-            let frequencies = [];
-            const frequency = this.pitchDetection.detectPitch(timeData);
-            if (frequency) {
-                frequencies = [frequency];
-            }
-            
             if (this.gameMode) {
-                // Modo juego: actualizar criatura (solo si no está en game over)
-                const gameState = getCreatureState();
-                if (!gameState.isGameOver) {
-                    updateCreatureGame(frequencies, dt);
-                }
+                // Modo juego: verificar la fase del juego
+                const gameState = getSequenceGameState();
                 
-                // Actualizar visualización de nota objetivo en el gráfico
-                if (gameState.targetFreq !== null) {
-                    this.graphRenderer.setTargetFrequency(gameState.targetFreq, gameState.targetNoteName);
-                    this.graphRenderer.setTargetTolerance(0.5); // CALM_THRESHOLD en semitonos (actualizado)
+                // Solo detectar y visualizar frecuencias durante la fase PLAYING
+                if (gameState.gamePhase === 'PLAYING' && !gameState.isGameOver) {
+                    // Detectar solo una frecuencia (un solo pitch)
+                    let frequencies = [];
+                    const frequency = this.pitchDetection.detectPitch(timeData);
+                    if (frequency) {
+                        frequencies = [frequency];
+                    }
+                    
+                    // Actualizar secuencia
+                    updateSequenceGame(frequencies, dt);
+                    
+                    // Actualizar visualización de notas objetivo en el gráfico
+                    if (gameState.allTargets && gameState.allTargets.length > 0) {
+                        this.graphRenderer.setSequenceTargets(gameState.allTargets);
+                        this.graphRenderer.setCurrentTargetIndex(gameState.currentNoteIndex);
+                        this.graphRenderer.setTargetTolerance(0.5); // CALM_THRESHOLD en semitonos
+                    } else {
+                        this.graphRenderer.clearTargets();
+                    }
+                    
+                    // Añadir datos al gráfico y dibujarlo (con las notas objetivo visibles)
+                    this.graphRenderer.addDataPoint(frequencies);
+                    this.graphRenderer.draw();
+                    
+                    // Actualizar displays (mostrar todas las frecuencias detectadas)
+                    this.updateFrequencyDisplays(frequencies);
                 } else {
-                    this.graphRenderer.setTargetFrequency(null);
-                    this.graphRenderer.setTargetTolerance(null);
+                    // Durante PLAYING_NOTES o COUNTDOWN: no detectar ni visualizar frecuencias del jugador
+                    // Solo actualizar el juego para avanzar las fases
+                    updateSequenceGame([], dt);
+                    
+                    // Actualizar visualización de notas objetivo en el gráfico
+                    const currentGameState = getSequenceGameState();
+                    if (currentGameState.allTargets && currentGameState.allTargets.length > 0) {
+                        this.graphRenderer.setSequenceTargets(currentGameState.allTargets);
+                        // Durante PLAYING_NOTES, mostrar solo la nota actual que se está reproduciendo
+                        // Durante COUNTDOWN, no mostrar ninguna nota resaltada
+                        if (currentGameState.gamePhase === 'PLAYING_NOTES' && currentGameState.initialPlaybackNoteIndex >= 0) {
+                            this.graphRenderer.setCurrentTargetIndex(currentGameState.initialPlaybackNoteIndex, true); // true = mostrar solo esta nota
+                        } else {
+                            this.graphRenderer.setCurrentTargetIndex(null, false);
+                        }
+                        this.graphRenderer.setTargetTolerance(0.5);
+                    }
+                    
+                    // NO añadir datos de frecuencia al gráfico (no mostrar línea del jugador)
+                    // Solo dibujar el gráfico con las notas objetivo
+                    this.graphRenderer.draw();
+                    
+                    // Limpiar displays de frecuencia
+                    this.updateFrequencyDisplays([]);
                 }
-                
-                // Añadir datos al gráfico y dibujarlo (con la nota objetivo visible)
-                this.graphRenderer.addDataPoint(frequencies);
-                this.graphRenderer.draw();
                 
                 // Renderizar criatura encima del gráfico (siempre, incluso en game over para mostrar overlay)
                 const ctx = this.graphRenderer.ctx;
                 const canvas = this.graphRenderer.canvas;
-                renderCreatureGame(ctx, canvas.width, canvas.height);
+                renderSequenceGame(ctx, canvas.width, canvas.height);
                 
                 // Actualizar UI de estado
                 this.updateCreatureUI();
             } else {
-                // Modo gráfica: limpiar objetivo si estaba activo
-                this.graphRenderer.setTargetFrequency(null);
-                this.graphRenderer.setTargetTolerance(null);
+                // Modo gráfica: procesamiento normal
+                let frequencies = [];
+                const frequency = this.pitchDetection.detectPitch(timeData);
+                if (frequency) {
+                    frequencies = [frequency];
+                }
+                
+                // Limpiar objetivo si estaba activo
+                this.graphRenderer.clearTargets();
                 
                 // Actualizar gráfica normal
                 this.graphRenderer.addDataPoint(frequencies);
                 this.graphRenderer.draw();
+                
+                // Actualizar displays
+                this.updateFrequencyDisplays(frequencies);
             }
-            
-            // Actualizar displays (mostrar todas las frecuencias detectadas)
-            this.updateFrequencyDisplays(frequencies);
         }
         
         // Continuar el loop
@@ -272,28 +323,69 @@ class VoicePitchGame {
     }
 
     updateCreatureUI() {
-        const creatureState = getCreatureState();
+        const gameState = getSequenceGameState();
         
-        // Actualizar texto de estado
+        // Actualizar texto de estado según la fase
         if (this.statusText) {
-            const statusText = creatureState.state === 'CALMA' ? 'CALMA 😌' :
-                              creatureState.state === 'INESTABLE' ? 'TENSIÓN 😬' :
-                              'CAOS 🤯';
-            this.statusText.textContent = statusText;
+            if (gameState.gamePhase === 'PLAYING_NOTES') {
+                this.statusText.textContent = 'ESCUCHA 🎵';
+            } else if (gameState.gamePhase === 'COUNTDOWN') {
+                this.statusText.textContent = `PREPÁRATE ${gameState.countdownNumber}`;
+            } else if (gameState.gamePhase === 'PLAYING') {
+                const statusText = gameState.state === 'CALMA' ? 'CALMA 😌' :
+                                  gameState.state === 'TENSION' ? 'TENSIÓN 😬' :
+                                  'CAOS 🤯';
+                this.statusText.textContent = statusText;
+            } else {
+                this.statusText.textContent = 'CALMA 😌';
+            }
         }
         
-        // Actualizar barra de energía
+        // Actualizar barra de vida (solo durante PLAYING)
         if (this.energyBar) {
-            const energyPercent = Math.round(creatureState.energy * 100);
-            this.energyBar.style.width = `${energyPercent}%`;
-            
-            // Cambiar color según energía
-            if (creatureState.energy > 0.75) {
-                this.energyBar.style.backgroundColor = '#4ade80';
-            } else if (creatureState.energy > 0.45) {
-                this.energyBar.style.backgroundColor = '#fbbf24';
+            if (gameState.gamePhase === 'PLAYING') {
+                const lifePercent = Math.round(gameState.life * 100);
+                this.energyBar.style.width = `${lifePercent}%`;
+                
+                // Cambiar color según vida
+                if (gameState.life > 0.5) {
+                    this.energyBar.style.backgroundColor = '#4ade80';
+                } else if (gameState.life > 0.25) {
+                    this.energyBar.style.backgroundColor = '#fbbf24';
+                } else {
+                    this.energyBar.style.backgroundColor = '#f87171';
+                }
             } else {
-                this.energyBar.style.backgroundColor = '#f87171';
+                // Durante otras fases, mantener la barra al 100%
+                this.energyBar.style.width = '100%';
+                this.energyBar.style.backgroundColor = '#4ade80';
+            }
+        }
+        
+        // Actualizar valores de información del juego (solo durante PLAYING)
+        if (this.lifeValue) {
+            if (gameState.gamePhase === 'PLAYING') {
+                this.lifeValue.textContent = `${Math.round(gameState.life * 100)}%`;
+            } else {
+                this.lifeValue.textContent = '100%';
+            }
+        }
+        
+        if (this.timeValue) {
+            if (gameState.gamePhase === 'PLAYING') {
+                this.timeValue.textContent = `${gameState.survivalTime.toFixed(1)}s`;
+            } else {
+                this.timeValue.textContent = '0.0s';
+            }
+        }
+        
+        if (this.noteValue) {
+            if (gameState.gamePhase === 'PLAYING' && gameState.currentTargetNoteName) {
+                this.noteValue.textContent = `${gameState.currentTargetNoteName} (${gameState.currentNoteIndex + 1}/${gameState.totalNotes})`;
+            } else if (gameState.gamePhase === 'PLAYING_NOTES' || gameState.gamePhase === 'COUNTDOWN') {
+                this.noteValue.textContent = 'Espera...';
+            } else {
+                this.noteValue.textContent = '--';
             }
         }
     }
