@@ -297,7 +297,7 @@ class VoicePitchGame {
 
                 const gameState = getSequenceGameState();
                 const score = gameState.survivalTime ? `${gameState.survivalTime.toFixed(1)}s` : '0.0s';
-                const shareText = `¡Conseguí ${score} en Criaturas Musicales! 🎵`;
+                const shareText = `¡Conseguí ${score} en Criaturas Musicales! ¿Cuánto puedes conseguir tú? https://musical-creatures.web.app/ 🎵`;
 
                 // Detectar si estamos en móvil y si el navegador soporta Web Share API
                 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
