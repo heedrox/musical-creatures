@@ -4,7 +4,7 @@
 import { AudioCapture } from './audio/audioCapture.js';
 import { PitchDetection } from './audio/pitchDetection.js';
 import { GraphRenderer } from './visualization/graphRenderer.js';
-import { updateSequenceGame, renderSequenceGame, getSequenceGameState, startSequenceGame, resetSequenceGame } from './game/sequenceGame.js';
+import { updateSequenceGame, renderSequenceGame, getSequenceGameState, startSequenceGame, resetSequenceGame, updateAnimationTimeOnly } from './game/sequenceGame.js';
 import html2canvas from 'html2canvas';
 
 class VoicePitchGame {
@@ -21,9 +21,12 @@ class VoicePitchGame {
         this.fullTimeHistory = []; // Array de timestamps relativos al inicio
         this.gameStartTime = null; // Timestamp del inicio del juego
         this.hasReplacedHistoryOnGameOver = false; // Bandera para evitar reemplazar múltiples veces
+        this.isFirstStart = true; // Bandera para controlar la pantalla de bienvenida
+        this.welcomeAnimationId = null; // ID del frame de animación de bienvenida
         
         this.initializeElements();
         this.setupEventListeners();
+        this.startWelcomeAnimation();
     }
 
     initializeElements() {
@@ -40,7 +43,17 @@ class VoicePitchGame {
         this.gameOverText = document.getElementById('gameOverText');
         this.gameOverSection = document.querySelector('.game-over-section');
         this.shareBtn = document.getElementById('shareBtn');
+        this.shareText = document.getElementById('shareText');
         this.container = document.querySelector('.container');
+        
+        // Elementos de bienvenida
+        this.welcomeScreen = document.getElementById('welcomeScreen');
+        this.contentRow = document.getElementById('contentRow');
+        
+        // Ocultar elementos del juego inicialmente
+        if (this.contentRow) {
+            this.contentRow.classList.add('hidden');
+        }
         
         const canvas = document.getElementById('frequencyCanvas');
         this.graphRenderer = new GraphRenderer(canvas);
@@ -49,9 +62,21 @@ class VoicePitchGame {
         this.creatureCanvas = creatureCanvas;
         this.creatureCtx = creatureCanvas.getContext('2d');
         
+        // Canvas de criatura para bienvenida
+        const welcomeCreatureCanvas = document.getElementById('welcomeCreatureCanvas');
+        this.welcomeCreatureCanvas = welcomeCreatureCanvas;
+        if (welcomeCreatureCanvas) {
+            this.welcomeCreatureCtx = welcomeCreatureCanvas.getContext('2d');
+            // Configurar tamaño del canvas de bienvenida
+            this.resizeWelcomeCreatureCanvas();
+            window.addEventListener('resize', () => {
+                this.resizeCreatureCanvas();
+                this.resizeWelcomeCreatureCanvas();
+            });
+        }
+        
         // Configurar tamaño del canvas de criatura
         this.resizeCreatureCanvas();
-        window.addEventListener('resize', () => this.resizeCreatureCanvas());
         
         // Forzar redimensionamiento después de que todo esté cargado
         const forceResize = () => {
@@ -76,6 +101,55 @@ class VoicePitchGame {
         const rect = this.creatureCanvas.getBoundingClientRect();
         this.creatureCanvas.width = rect.width;
         this.creatureCanvas.height = rect.height;
+    }
+
+    resizeWelcomeCreatureCanvas() {
+        if (this.welcomeCreatureCanvas) {
+            const rect = this.welcomeCreatureCanvas.getBoundingClientRect();
+            this.welcomeCreatureCanvas.width = rect.width;
+            this.welcomeCreatureCanvas.height = rect.height;
+        }
+    }
+
+    startWelcomeAnimation() {
+        if (!this.welcomeCreatureCanvas || !this.welcomeCreatureCtx) {
+            return;
+        }
+
+        let lastFrameTime = performance.now();
+
+        const animate = (currentTime) => {
+            // Solo animar si la pantalla de bienvenida está visible
+            if (this.welcomeScreen && !this.welcomeScreen.classList.contains('hidden')) {
+                // Solo animar si el juego NO está corriendo
+                if (!this.isRunning) {
+                    // Calcular delta time
+                    const deltaTime = currentTime - lastFrameTime;
+                    lastFrameTime = currentTime;
+                    
+                    // Actualizar solo el tiempo de animación sin avanzar el juego
+                    // Esto permite que la criatura se anime sin iniciar el countdown
+                    updateAnimationTimeOnly(deltaTime);
+                }
+                
+                // Limpiar canvas
+                this.welcomeCreatureCtx.clearRect(0, 0, this.welcomeCreatureCanvas.width, this.welcomeCreatureCanvas.height);
+                
+                // Renderizar la criatura usando el mismo renderer del juego
+                // La criatura se animará porque el tiempo se está actualizando
+                renderSequenceGame(this.welcomeCreatureCtx, this.welcomeCreatureCanvas.width, this.welcomeCreatureCanvas.height);
+                
+                this.welcomeAnimationId = requestAnimationFrame(animate);
+            } else {
+                // Si la bienvenida está oculta, detener la animación
+                if (this.welcomeAnimationId) {
+                    cancelAnimationFrame(this.welcomeAnimationId);
+                    this.welcomeAnimationId = null;
+                }
+            }
+        };
+        
+        this.welcomeAnimationId = requestAnimationFrame(animate);
     }
 
     setupEventListeners() {
@@ -127,6 +201,17 @@ class VoicePitchGame {
 
     async start() {
         try {
+            // Si es la primera vez, ocultar bienvenida y mostrar elementos del juego
+            if (this.isFirstStart) {
+                if (this.welcomeScreen) {
+                    this.welcomeScreen.classList.add('hidden');
+                }
+                if (this.contentRow) {
+                    this.contentRow.classList.remove('hidden');
+                }
+                this.isFirstStart = false;
+            }
+            
             // Si el juego ya está corriendo, verificar si podemos reiniciar
             const gameState = getSequenceGameState();
             const isGameOver = gameState.gamePhase === 'GAME_OVER' || gameState.isGameOver;
@@ -289,44 +374,15 @@ class VoicePitchGame {
                 allowTaint: true
             });
 
-            // Obtener el texto de compartir antes de modificar el canvas
-            const gameState = getSequenceGameState();
-            const score = gameState.survivalTime ? `${gameState.survivalTime.toFixed(1)}s` : '0.0s';
-            const shareText = `¡Conseguí ${score} en Criaturas Musicales! ¿Cuánto puedes conseguir tú? https://musical-creatures.web.app/ 🎵`;
-
-            // Agregar texto directamente en la imagen
-            const ctx = canvas.getContext('2d');
-            const padding = 40;
-            const textHeight = 60;
-            
-            // Crear un nuevo canvas más grande para incluir el texto
-            const finalCanvas = document.createElement('canvas');
-            finalCanvas.width = canvas.width;
-            finalCanvas.height = canvas.height + padding + textHeight;
-            const finalCtx = finalCanvas.getContext('2d');
-            
-            // Dibujar la imagen original
-            finalCtx.drawImage(canvas, 0, 0);
-            
-            // Dibujar fondo semi-transparente para el texto
-            finalCtx.fillStyle = 'rgba(10, 10, 10, 0.85)';
-            finalCtx.fillRect(0, canvas.height, finalCanvas.width, padding + textHeight);
-            
-            // Configurar estilo del texto
-            finalCtx.fillStyle = '#ffffff';
-            finalCtx.font = 'bold 32px "Exo 2", sans-serif';
-            finalCtx.textAlign = 'center';
-            finalCtx.textBaseline = 'middle';
-            
-            // Dibujar el texto centrado
-            const textY = canvas.height + padding + (textHeight / 2);
-            finalCtx.fillText(shareText, finalCanvas.width / 2, textY);
-
-            // Convertir canvas final a blob
-            finalCanvas.toBlob(async (blob) => {
+            // Convertir canvas a blob
+            canvas.toBlob(async (blob) => {
                 if (!blob) {
                     throw new Error('Error al generar la imagen');
                 }
+
+                const gameState = getSequenceGameState();
+                const score = gameState.survivalTime ? `${gameState.survivalTime.toFixed(1)}s` : '0.0s';
+                const shareText = `¡Conseguí ${score} en Criaturas Musicales! ¿Cuánto puedes conseguir tú? https://musical-creatures.web.app/ 🎵`;
 
                 // Detectar si estamos en móvil y si el navegador soporta Web Share API
                 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -579,6 +635,11 @@ class VoicePitchGame {
             if (gameOverContent) {
                 if (gameState.gamePhase === 'GAME_OVER' || gameState.isGameOver) {
                     gameOverContent.classList.add('show');
+                    // Actualizar texto de compartir con la puntuación
+                    if (this.shareText) {
+                        const score = gameState.survivalTime ? `${gameState.survivalTime.toFixed(1)}s` : '0.0s';
+                        this.shareText.textContent = `¡Conseguí ${score} en Criaturas Musicales! ¿Cuánto puedes conseguir tú? https://musical-creatures.web.app/ 🎵`;
+                    }
                     // Habilitar botón de iniciar para permitir reiniciar el juego
                     if (this.startBtn) {
                         this.startBtn.disabled = false;

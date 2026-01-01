@@ -22,9 +22,26 @@
         </div>
 
         <div class="main-content">
+            <div class="welcome-screen" id="welcomeScreen">
+                <div class="welcome-content">
+                    <div class="welcome-creature-wrapper">
+                        <canvas id="welcomeCreatureCanvas"></canvas>
+                    </div>
+                    <div class="welcome-text-wrapper">
+                        <h2 class="welcome-title">¿Cuánto tiempo podrás mantenerla viva?</h2>
+                        <p class="welcome-text">
+                            Memoriza la secuencia. Repite las notas.<br>
+                            Mantén viva a tu criatura el mayor tiempo posible.<br>
+                            ¿Hasta dónde llegarás?
+                        </p>
+                    </div>
+                </div>
+            </div>
+
             <div class="game-over-section">
                 <div class="game-over-content">
                     <div class="game-over-text" id="gameOverText">GAME OVER</div>
+                    <div class="share-text" id="shareText"></div>
                     <button id="shareBtn" class="btn btn-share" aria-label="Compartir resultado">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="18" cy="5" r="3"></circle>
@@ -38,7 +55,7 @@
                 </div>
             </div>
             
-            <div class="content-row">
+            <div class="content-row hidden" id="contentRow">
                 <div class="left-section">
                     <div class="score-section">
                         <div class="score-label">Puntuación</div>

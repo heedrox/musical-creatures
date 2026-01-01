@@ -479,6 +479,17 @@ export function resetSequenceGame() {
 }
 
 /**
+ * Actualiza solo el tiempo de animación sin avanzar el juego
+ * Útil para animar la criatura en la pantalla de bienvenida
+ * @param {number} dt - Delta time en ms
+ */
+export function updateAnimationTimeOnly(dt) {
+    time += dt;
+    // Actualizar partículas para que se vean animadas
+    updateParticles(dt);
+}
+
+/**
  * Obtiene el estado actual del juego
  * @returns {Object} { state, energy, life, survivalTime, currentNoteIndex, currentTarget, isGameOver, gamePhase, countdownNumber, initialPlaybackNoteIndex }
  */
