@@ -20,8 +20,8 @@ const TENSION_THRESHOLD = 2.0; // Semitonos: error máximo para estar en TENSION
 const GRACE_SILENCE = 300; // ms de grace period sin frecuencias antes de CAOS
 
 // Sistema de vida
-const TENSION_DRAIN_RATE = 0.05; // Vida que se pierde por segundo en TENSION
-const CHAOS_DRAIN_RATE = 0.15; // Vida que se pierde por segundo en CAOS
+const TENSION_DRAIN_RATE = 0.10; // Vida que se pierde por segundo en TENSION (10% por segundo)
+const CHAOS_DRAIN_RATE = 0.20; // Vida que se pierde por segundo en CAOS (20% por segundo)
 const INITIAL_LIFE = 1.0; // Vida inicial (0.0 - 1.0)
 
 // Histéresis para evitar parpadeo de estados
@@ -517,46 +517,28 @@ export function getSequenceGameState() {
  * @param {number} height - Alto del canvas
  */
 export function renderSequenceGame(ctx, width, height) {
-    // NO limpiar el canvas - permitir que el gráfico se vea detrás
+    // Solo dibujar la criatura - el canvas ya está limpio
+    
+    // Si estamos en countdown, mostrar número grande en lugar de la criatura
+    if (gamePhase === 'COUNTDOWN' && countdownNumber > 0) {
+        drawCountdown(ctx, width, height, countdownNumber);
+        return;
+    }
     
     const centerX = width / 2;
     const centerY = height / 2;
-    const blobSize = Math.min(width, height) * 0.3;
+    const blobSize = Math.min(width, height) * 0.7;
     
     // Calcular shake según estado
     const shakeAmount = currentState === 'CAOS' ? (Math.sin(time * 0.05) * 5) : 0;
     const shakeX = shakeAmount * (Math.random() - 0.5);
     const shakeY = shakeAmount * (Math.random() - 0.5);
     
-    // Dibujar fondo semitransparente detrás de la criatura
-    const blobRadius = blobSize * 0.5;
-    const bgPadding = blobRadius * 1.5;
-    ctx.fillStyle = 'rgba(15, 15, 30, 0.7)';
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, blobRadius + bgPadding, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Dibujar partículas/burbujas primero (detrás del blob)
-    drawParticles(ctx, width, height);
-    
-    // Dibujar blob central
+    // Dibujar blob central (la criatura)
     drawBlob(ctx, centerX + shakeX, centerY + shakeY, blobSize);
     
     // Dibujar cara (ojos y boca)
     drawFace(ctx, centerX + shakeX, centerY + shakeY, blobSize);
-    
-    // Dibujar UI del juego (objetivo, vida bar, tiempo)
-    drawGameUI(ctx, width, height);
-    
-    // Dibujar overlay de countdown si corresponde
-    if (gamePhase === 'COUNTDOWN') {
-        drawCountdownOverlay(ctx, width, height);
-    }
-    
-    // Dibujar overlay de game over si corresponde
-    if (isGameOver || gamePhase === 'GAME_OVER') {
-        drawGameOverOverlay(ctx, width, height);
-    }
 }
 
 /**
@@ -667,6 +649,42 @@ function drawFace(ctx, x, y, blobSize) {
         ctx.arc(x, mouthY, blobSize * 0.08, 0, Math.PI * 2);
         ctx.stroke();
     }
+}
+
+/**
+ * Dibuja el countdown grande (3, 2, 1) ocupando todo el espacio de la criatura
+ */
+function drawCountdown(ctx, width, height, number) {
+    const centerX = width / 2;
+    const centerY = height / 2;
+    
+    // Calcular tamaño de fuente basado en el tamaño del canvas
+    const fontSize = Math.min(width, height) * 0.6;
+    
+    // Configurar estilo de texto
+    ctx.font = `bold ${fontSize}px 'Orbitron', sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    
+    // Color del número con efecto de brillo
+    const gradient = ctx.createLinearGradient(centerX - fontSize * 0.3, centerY - fontSize * 0.3, centerX + fontSize * 0.3, centerY + fontSize * 0.3);
+    gradient.addColorStop(0, '#ffffff');
+    gradient.addColorStop(0.5, '#fbbf24');
+    gradient.addColorStop(1, '#ffffff');
+    ctx.fillStyle = gradient;
+    
+    // Sombra para dar profundidad
+    ctx.shadowColor = 'rgba(251, 191, 36, 0.8)';
+    ctx.shadowBlur = fontSize * 0.2;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+    
+    // Dibujar el número
+    ctx.fillText(number.toString(), centerX, centerY);
+    
+    // Resetear sombra
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
 }
 
 /**

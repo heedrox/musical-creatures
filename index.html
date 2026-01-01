@@ -15,6 +15,7 @@
             <h1>Criaturas Musicales</h1>
             <div class="header-controls">
                 <div class="controls">
+                    <button id="helpBtn" class="btn btn-help" aria-label="Ayuda">?</button>
                     <button id="startBtn" class="btn btn-primary">Iniciar</button>
                 </div>
             </div>
@@ -95,6 +96,55 @@
             </li>
         </ul>
     </footer>
+
+    <!-- Modal de ayuda -->
+    <div id="helpModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>¿Cómo se juega?</h2>
+                <button class="modal-close" aria-label="Cerrar">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="help-section">
+                    <h3>🎵 Objetivo</h3>
+                    <p>Tu objetivo es mantener viva a tu criatura musical el mayor tiempo posible cantando o tocando las notas correctas.</p>
+                </div>
+                
+                <div class="help-section">
+                    <h3>🎯 Cómo jugar</h3>
+                    <ol>
+                        <li><strong>Escucha la secuencia:</strong> Primero escucharás una secuencia de 5 notas que debes memorizar.</li>
+                        <li><strong>Prepárate:</strong> Después de escuchar, tendrás 3 segundos para prepararte.</li>
+                        <li><strong>Repite la secuencia:</strong> Cuando empiece el juego, canta o toca las notas en el mismo orden que las escuchaste.</li>
+                        <li><strong>Mantén la calma:</strong> Intenta mantenerte lo más cerca posible de cada nota objetivo para mantener a tu criatura en estado de <strong>CALMA</strong>.</li>
+                    </ol>
+                </div>
+                
+                <div class="help-section">
+                    <h3>💚 Estados de la criatura</h3>
+                    <ul>
+                        <li><strong>CALMA (verde):</strong> Estás tocando la nota correcta. La vida se mantiene estable.</li>
+                        <li><strong>TENSIÓN (amarillo):</strong> Te estás desviando de la nota. La vida disminuye lentamente.</li>
+                        <li><strong>CAOS (rojo):</strong> Estás muy lejos de la nota o en silencio. La vida disminuye rápidamente.</li>
+                    </ul>
+                </div>
+                
+                <div class="help-section">
+                    <h3>📊 Puntuación</h3>
+                    <p>Tu puntuación es el tiempo que logras mantener viva a tu criatura. ¡Intenta superar tu mejor marca!</p>
+                </div>
+                
+                <div class="help-section">
+                    <h3>💡 Consejos</h3>
+                    <ul>
+                        <li>Presta atención a la visualización del gráfico: las líneas verdes muestran las notas objetivo.</li>
+                        <li>La criatura reacciona visualmente a tu precisión.</li>
+                        <li>Practica para mejorar tu afinación y memoria musical.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script type="module" src="main.js"></script>
 </body>

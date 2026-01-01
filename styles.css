@@ -7,7 +7,7 @@
 body {
     font-family: 'Exo 2', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: #000000;
-    padding: 20px;
+    padding: 10px;
     color: #ffffff;
     min-height: 100vh;
     font-feature-settings: 'liga' 1, 'calt' 1;
@@ -21,7 +21,7 @@ body {
     background: #0a0a0a;
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 8px;
-    padding: 30px;
+    padding: 20px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
@@ -32,24 +32,32 @@ body {
     padding-bottom: 20px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     margin-bottom: 30px;
+    gap: 15px;
+    flex-wrap: nowrap;
 }
 
 .header h1 {
     font-family: 'Orbitron', 'Rajdhani', sans-serif;
-    font-size: 1.8em;
+    font-size: 2.2em;
     font-weight: 700;
     color: #ffffff;
     letter-spacing: 2px;
+    flex: 1;
+    min-width: 0;
+    line-height: 1.2;
+    word-break: break-word;
 }
 
 .header-controls {
     display: flex;
     align-items: center;
+    flex-shrink: 0;
 }
 
 .controls {
     display: flex;
     gap: 10px;
+    flex-shrink: 0;
 }
 
 .btn {
@@ -72,6 +80,24 @@ body {
 .btn-secondary:hover:not(:disabled) {
     background: rgba(239, 68, 68, 0.2);
     border-color: rgba(239, 68, 68, 0.4);
+}
+
+.btn-help {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border-radius: 50%;
+    font-size: 1.2em;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-help:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.4);
+    transform: scale(1.05);
 }
 
 .btn:disabled {
@@ -166,8 +192,8 @@ body {
 }
 
 #creatureCanvas {
-    width: 100px;
-    height: 100px;
+    width: 200px;
+    height: 200px;
     display: block;
 }
 
@@ -379,7 +405,7 @@ body {
     }
     
     .score-value {
-        font-size: 1.8em;
+        font-size: 2.5em;
     }
     
     .creature-container {
@@ -400,8 +426,8 @@ body {
     }
     
     #creatureCanvas {
-        width: 80px;
-        height: 80px;
+        width: 150px;
+        height: 150px;
     }
     
     .creature-status-text {
@@ -418,19 +444,42 @@ body {
     }
 
     .header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 15px;
+        flex-direction: row;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: nowrap;
+    }
+
+    .header h1 {
+        font-size: 1.8em;
+        letter-spacing: 1px;
+        flex: 1;
+        min-width: 0;
+        line-height: 1.2;
     }
 
     .header-controls {
-        width: 100%;
-        justify-content: space-between;
+        width: auto;
+        justify-content: flex-end;
+        flex-shrink: 0;
     }
 
     .controls {
-        flex: 1;
+        flex: 0;
         justify-content: flex-end;
+        gap: 8px;
+        flex-shrink: 0;
+    }
+
+    .btn {
+        padding: 8px 16px;
+        font-size: 0.9em;
+    }
+
+    .btn-help {
+        width: 36px;
+        height: 36px;
+        font-size: 1.1em;
     }
 
     .footer {
@@ -444,5 +493,199 @@ body {
     .footer-text {
         font-size: 0.85em;
         text-align: center;
+    }
+}
+
+/* Modal de ayuda */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.2s ease;
+}
+
+.modal.show {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.modal-content {
+    background: #0a0a0a;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    max-width: 600px;
+    width: 90%;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    animation: slideUp 0.3s ease;
+    position: relative;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(30px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 30px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-header h2 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.5em;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0;
+    letter-spacing: 1px;
+}
+
+.modal-close {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 2em;
+    cursor: pointer;
+    padding: 0;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    line-height: 1;
+}
+
+.modal-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    transform: rotate(90deg);
+}
+
+.modal-body {
+    padding: 30px;
+}
+
+.help-section {
+    margin-bottom: 28px;
+}
+
+.help-section:last-child {
+    margin-bottom: 0;
+}
+
+.help-section h3 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.1em;
+    font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 12px;
+    letter-spacing: 1px;
+}
+
+.help-section p {
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.6;
+    margin-bottom: 8px;
+    font-size: 0.95em;
+}
+
+.help-section ol,
+.help-section ul {
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.8;
+    padding-left: 24px;
+    margin: 12px 0;
+}
+
+.help-section li {
+    margin-bottom: 8px;
+    font-size: 0.95em;
+}
+
+.help-section strong {
+    color: #ffffff;
+    font-weight: 600;
+}
+
+@media (max-width: 800px) {
+    .modal-content {
+        width: 95%;
+        max-height: 90vh;
+    }
+    
+    .modal-header {
+        padding: 20px 24px;
+    }
+    
+    .modal-header h2 {
+        font-size: 1.3em;
+    }
+    
+    .modal-body {
+        padding: 24px;
+    }
+    
+    .help-section {
+        margin-bottom: 24px;
+    }
+    
+    .help-section h3 {
+        font-size: 1em;
+    }
+    
+    .help-section p,
+    .help-section li {
+        font-size: 0.9em;
+    }
+}
+
+@media (max-width: 480px) {
+    .header h1 {
+        font-size: 1.5em;
+        letter-spacing: 0.5px;
+        line-height: 1.2;
+    }
+
+    .btn {
+        padding: 8px 12px;
+        font-size: 0.85em;
+    }
+
+    .btn-help {
+        width: 32px;
+        height: 32px;
+        font-size: 1em;
+    }
+
+    .controls {
+        gap: 6px;
     }
 }

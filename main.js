@@ -21,6 +21,8 @@ class VoicePitchGame {
 
     initializeElements() {
         this.startBtn = document.getElementById('startBtn');
+        this.helpBtn = document.getElementById('helpBtn');
+        this.helpModal = document.getElementById('helpModal');
         this.statusText = document.getElementById('statusText');
         this.energyBar = document.getElementById('energyBar');
         this.energyBarDesktop = document.getElementById('energyBarDesktop');
@@ -49,6 +51,44 @@ class VoicePitchGame {
 
     setupEventListeners() {
         this.startBtn.addEventListener('click', () => this.start());
+        
+        // Modal de ayuda
+        if (this.helpBtn && this.helpModal) {
+            this.helpBtn.addEventListener('click', () => this.openHelpModal());
+            
+            const closeBtn = this.helpModal.querySelector('.modal-close');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', () => this.closeHelpModal());
+            }
+            
+            // Cerrar al hacer clic fuera del modal
+            this.helpModal.addEventListener('click', (e) => {
+                if (e.target === this.helpModal) {
+                    this.closeHelpModal();
+                }
+            });
+            
+            // Cerrar con tecla Escape
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && this.helpModal.classList.contains('show')) {
+                    this.closeHelpModal();
+                }
+            });
+        }
+    }
+    
+    openHelpModal() {
+        if (this.helpModal) {
+            this.helpModal.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
+    }
+    
+    closeHelpModal() {
+        if (this.helpModal) {
+            this.helpModal.classList.remove('show');
+            document.body.style.overflow = '';
+        }
     }
 
     async start() {
@@ -211,23 +251,29 @@ class VoicePitchGame {
             if (gameState.gamePhase === 'PLAYING_NOTES') {
                 this.statusText.textContent = 'ESCUCHA';
             } else if (gameState.gamePhase === 'COUNTDOWN') {
-                this.statusText.textContent = `PREPÁRATE ${gameState.countdownNumber}`;
+                // Durante countdown, ocultar el texto ya que el número se muestra grande en el canvas
+                this.statusText.textContent = '';
             } else if (gameState.gamePhase === 'PLAYING') {
                 const statusText = gameState.state === 'CALMA' ? 'CALMA' :
                                   gameState.state === 'TENSION' ? 'TENSIÓN' :
                                   'CAOS';
                 this.statusText.textContent = statusText;
+            } else if (gameState.gamePhase === 'GAME_OVER' || gameState.isGameOver) {
+                this.statusText.textContent = 'FIN';
             } else {
                 this.statusText.textContent = 'CALMA';
             }
         }
         
-        // Actualizar barras de vida (solo durante PLAYING)
+        // Actualizar barras de vida
         const updateBar = (bar) => {
             if (!bar) return;
             if (gameState.gamePhase === 'PLAYING') {
                 const lifePercent = Math.round(gameState.life * 100);
                 bar.style.width = `${lifePercent}%`;
+            } else if (gameState.gamePhase === 'GAME_OVER' || gameState.isGameOver) {
+                // Cuando el juego termina, mostrar 0%
+                bar.style.width = '0%';
             } else {
                 bar.style.width = '100%';
             }
@@ -236,11 +282,14 @@ class VoicePitchGame {
         updateBar(this.energyBar);
         updateBar(this.energyBarDesktop);
         
-        // Actualizar valores de información del juego (solo durante PLAYING)
+        // Actualizar valores de información del juego
         const updateLifeValue = (lifeEl) => {
             if (!lifeEl) return;
             if (gameState.gamePhase === 'PLAYING') {
                 lifeEl.textContent = `${Math.round(gameState.life * 100)}%`;
+            } else if (gameState.gamePhase === 'GAME_OVER' || gameState.isGameOver) {
+                // Cuando el juego termina, mostrar 0%
+                lifeEl.textContent = '0%';
             } else {
                 lifeEl.textContent = '100%';
             }
@@ -251,6 +300,9 @@ class VoicePitchGame {
         
         if (this.timeValue) {
             if (gameState.gamePhase === 'PLAYING') {
+                this.timeValue.textContent = `${gameState.survivalTime.toFixed(1)}s`;
+            } else if (gameState.gamePhase === 'GAME_OVER' || gameState.isGameOver) {
+                // Cuando el juego termina, mantener la puntuación final
                 this.timeValue.textContent = `${gameState.survivalTime.toFixed(1)}s`;
             } else {
                 this.timeValue.textContent = '0.0s';
