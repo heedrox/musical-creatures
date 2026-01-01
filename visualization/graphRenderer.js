@@ -10,13 +10,13 @@ export class GraphRenderer {
         this.frequencyHistory = []; // Array de arrays: [[freq1, freq2], ...]
         this.timeHistory = [];
         
-        // Colores para cada frecuencia (hasta 5 jugadores)
-        this.colors = ['#667eea', '#f093fb', '#4facfe', '#00f2fe', '#43e97b'];
+        // Color para la frecuencia detectada
+        this.colors = ['#667eea'];
         
-        // Rango fijo: desde C2 hasta G4
-        // C2 ≈ 65.41 Hz, G4 ≈ 392.00 Hz
-        this.minFrequency = 65.41;   // C2
-        this.maxFrequency = 392.00;  // G4
+        // Rango fijo: desde F2 hasta C5
+        // F2 ≈ 87.31 Hz, C5 ≈ 523.25 Hz
+        this.minFrequency = 87.31;   // F2
+        this.maxFrequency = 523.25;  // C5
         this.freqRange = this.maxFrequency - this.minFrequency;
         
         // Para escala logarítmica (hace que las notas se vean equidistantes)
@@ -87,7 +87,7 @@ export class GraphRenderer {
         const graphWidth = width - padding * 2;
         const graphHeight = height - padding * 2;
         
-        // Usar rango fijo desde C2 hasta G4
+        // Usar rango fijo desde F2 hasta C5
         const minFreq = this.minFrequency;
         const maxFreq = this.maxFrequency;
         const freqRange = this.freqRange;
@@ -211,15 +211,20 @@ export class GraphRenderer {
         this.ctx.font = '11px monospace';
         this.ctx.fillStyle = '#888';
         
-        // Calcular las frecuencias de las notas desde C2 hasta G4
+        // Calcular las frecuencias de las notas desde F2 hasta C5
         const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
         const notes = [];
         
-        // Generar todas las notas desde C2 hasta G4
-        for (let octave = 2; octave <= 4; octave++) {
+        // Generar todas las notas desde F2 hasta C5
+        for (let octave = 2; octave <= 5; octave++) {
             for (const noteName of noteNames) {
-                // En la octava 4, solo incluir hasta G
-                if (octave === 4 && noteNames.indexOf(noteName) > noteNames.indexOf('G')) {
+                // En la octava 2, empezar desde F
+                if (octave === 2 && noteNames.indexOf(noteName) < noteNames.indexOf('F')) {
+                    continue;
+                }
+                
+                // En la octava 5, solo incluir hasta C
+                if (octave === 5 && noteNames.indexOf(noteName) > noteNames.indexOf('C')) {
                     break;
                 }
                 

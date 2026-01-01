@@ -1,7 +1,7 @@
 /**
  * Módulo del juego "La Criatura Armónica"
- * Sistema de objetivo y puntuación: los jugadores deben afinar sus voces a una nota objetivo.
- * El estado emocional depende de la proximidad de las frecuencias detectadas al objetivo.
+ * Sistema de objetivo y puntuación: el jugador debe afinar su voz a una nota objetivo.
+ * El estado emocional depende de la proximidad de la frecuencia detectada al objetivo.
  * Incluye sistema de puntuación (tiempo de supervivencia) y doom meter (caos acumulado).
  */
 
@@ -61,18 +61,6 @@ function frequencyToMidi(freq) {
     if (!freq || freq <= 0) return null;
     // A4 = 440 Hz = MIDI 69
     return 69 + 12 * Math.log2(freq / 440);
-}
-
-/**
- * Calcula la desviación estándar de un array de números
- * @param {Array<number>} values - Array de valores
- * @returns {number} Desviación estándar
- */
-function standardDeviation(values) {
-    if (values.length === 0) return 0;
-    const mean = values.reduce((a, b) => a + b, 0) / values.length;
-    const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
-    return Math.sqrt(variance);
 }
 
 /**
@@ -139,13 +127,13 @@ function midiToFrequency(midi) {
 }
 
 /**
- * Selecciona una nota objetivo aleatoria en el rango C2-G4 (MIDI 36-67)
+ * Selecciona una nota objetivo aleatoria en el rango F2-C5 (MIDI 41-72)
  * @returns {number} MIDI de la nota objetivo
  */
 function selectRandomTargetNote() {
-    // C2 = MIDI 36, G4 = MIDI 67 (cromática completa)
-    const minMidi = 36;
-    const maxMidi = 67;
+    // F2 = MIDI 41, C5 = MIDI 72 (cromática completa)
+    const minMidi = 41;
+    const maxMidi = 72;
     return Math.floor(Math.random() * (maxMidi - minMidi + 1)) + minMidi;
 }
 
@@ -696,43 +684,4 @@ function drawGameOverOverlay(ctx, width, height) {
     ctx.fillText('Presiona "Iniciar" para reiniciar', width / 2, height / 2 + 70);
 }
 
-/**
- * Dibuja indicadores de error por voz (opcional, se puede llamar desde main.js con freqsHz)
- * @param {CanvasRenderingContext2D} ctx - Contexto del canvas
- * @param {number} width - Ancho del canvas
- * @param {number} height - Alto del canvas
- * @param {Array<number>} freqsHz - Array de frecuencias detectadas
- */
-export function drawVoiceErrors(ctx, width, height, freqsHz) {
-    if (!targetMidi || !freqsHz || freqsHz.length === 0) return;
-    
-    const validFreqs = filterValidFrequencies(freqsHz);
-    if (validFreqs.length === 0) return;
-    
-    let yPos = height - 60;
-    ctx.font = '14px sans-serif';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'top';
-    
-    validFreqs.forEach((freq, index) => {
-        const midi = frequencyToMidi(freq);
-        if (midi === null) return;
-        
-        const error = midi - targetMidi;
-        const errorText = `V${index + 1}: ${error >= 0 ? '+' : ''}${error.toFixed(2)} st`;
-        
-        // Color según error
-        const absError = Math.abs(error);
-        let color = '#f87171'; // Rojo por defecto (CAOS)
-        if (absError <= CALM_THRESHOLD) {
-            color = '#4ade80'; // Verde (CALMA)
-        } else if (absError <= UNSTABLE_THRESHOLD) {
-            color = '#fbbf24'; // Amarillo (INESTABLE)
-        }
-        
-        ctx.fillStyle = color;
-        ctx.fillText(errorText, 15, yPos);
-        yPos += 20;
-    });
-}
 

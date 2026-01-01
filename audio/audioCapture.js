@@ -7,7 +7,6 @@ export class AudioCapture {
         this.audioContext = null;
         this.analyser = null;
         this.microphone = null;
-        this.dataArray = null;
         this.frequencyDataArray = null; // Para datos de frecuencia en magnitud
         this.isCapturing = false;
     }
@@ -36,7 +35,6 @@ export class AudioCapture {
             this.analyser.smoothingTimeConstant = 0.8;
             
             const bufferLength = this.analyser.frequencyBinCount;
-            this.dataArray = new Float32Array(bufferLength);
             this.frequencyDataArray = new Float32Array(bufferLength); // Para datos de frecuencia en magnitud
 
             // Conectar el micrófono al analizador
@@ -53,19 +51,6 @@ export class AudioCapture {
                 error: error.message || 'No se pudo acceder al micrófono' 
             };
         }
-    }
-
-    /**
-     * Obtiene los datos de frecuencia actuales (en dB)
-     * @returns {Float32Array} Array con los datos de frecuencia en dB
-     */
-    getFrequencyData() {
-        if (!this.analyser || !this.isCapturing) {
-            return null;
-        }
-        
-        this.analyser.getFloatFrequencyData(this.dataArray);
-        return this.dataArray;
     }
 
     /**

@@ -25,7 +25,6 @@ class VoicePitchGame {
         this.stopBtn = document.getElementById('stopBtn');
         this.statusEl = document.getElementById('status');
         this.infoPanel = document.getElementById('infoPanel');
-        this.playerCountSelect = document.getElementById('playerCount');
         this.legendEl = document.getElementById('legend');
         this.gameModeToggle = document.getElementById('gameModeToggle');
         this.statusText = document.getElementById('statusText');
@@ -33,16 +32,6 @@ class VoicePitchGame {
         
         const canvas = document.getElementById('frequencyCanvas');
         this.graphRenderer = new GraphRenderer(canvas);
-        
-        // Modo de detección múltiple (por defecto: 2 frecuencias)
-        this.detectMultipleFrequencies = true;
-        this.maxFrequencies = parseInt(this.playerCountSelect.value);
-        
-        // Colores para cada jugador
-        this.playerColors = ['#667eea', '#f093fb', '#4facfe', '#00f2fe', '#43e97b'];
-        
-        // Actualizar leyenda inicial
-        this.updateLegend();
         
         // Inicializar toggle de modo juego
         if (this.gameModeToggle) {
@@ -53,17 +42,6 @@ class VoicePitchGame {
     setupEventListeners() {
         this.startBtn.addEventListener('click', () => this.start());
         this.stopBtn.addEventListener('click', () => this.stop());
-        
-        // Actualizar número de frecuencias cuando cambia el selector
-        this.playerCountSelect.addEventListener('change', () => {
-            this.maxFrequencies = parseInt(this.playerCountSelect.value);
-            this.updateLegend();
-            
-            // Si está corriendo, limpiar la gráfica para empezar de nuevo
-            if (this.isRunning) {
-                this.graphRenderer.clear();
-            }
-        });
         
         // Toggle de modo juego
         if (this.gameModeToggle) {
@@ -106,7 +84,6 @@ class VoicePitchGame {
             this.isRunning = true;
             this.startBtn.disabled = true;
             this.stopBtn.disabled = false;
-            this.playerCountSelect.disabled = true; // Deshabilitar selector durante la ejecución
             
             // Inicializar juego si está en modo juego
             if (this.gameMode) {
@@ -146,7 +123,6 @@ class VoicePitchGame {
         
         this.startBtn.disabled = false;
         this.stopBtn.disabled = true;
-        this.playerCountSelect.disabled = false; // Rehabilitar selector
         
         this.updateStatus('Captura detenida', 'info');
         this.updateFrequencyDisplays([]);
@@ -170,22 +146,15 @@ class VoicePitchGame {
         const dt = this.lastFrameTime ? now - this.lastFrameTime : 16.67; // Aproximado para primer frame
         this.lastFrameTime = now;
 
-        // Obtener datos de tiempo y frecuencia para análisis de pitch
+        // Obtener datos de tiempo para análisis de pitch
         const timeData = this.audioCapture.getTimeData();
-        const frequencyData = this.audioCapture.getFrequencyDataMagnitude(); // Usar magnitud, no dB
         
         if (timeData && this.pitchDetection) {
+            // Detectar solo una frecuencia (un solo pitch)
             let frequencies = [];
-            
-            if (this.detectMultipleFrequencies) {
-                // Detectar múltiples frecuencias (pasar también datos de frecuencia para mejor detección)
-                frequencies = this.pitchDetection.detectMultiplePitches(timeData, this.maxFrequencies, frequencyData);
-            } else {
-                // Detectar solo una frecuencia
-                const frequency = this.pitchDetection.detectPitch(timeData);
-                if (frequency) {
-                    frequencies = [frequency];
-                }
+            const frequency = this.pitchDetection.detectPitch(timeData);
+            if (frequency) {
+                frequencies = [frequency];
             }
             
             if (this.gameMode) {
@@ -247,59 +216,44 @@ class VoicePitchGame {
         }
     }
 
-    updateLegend() {
-        const playerCount = this.maxFrequencies;
-        
-        // Limpiar leyenda
-        this.legendEl.innerHTML = '';
-        
-        // Añadir solo los jugadores seleccionados
-        for (let i = 0; i < playerCount; i++) {
-            const p = document.createElement('p');
-            p.innerHTML = `<span class="legend-color" style="background: ${this.playerColors[i]};"></span> Jugador ${i + 1}`;
-            this.legendEl.appendChild(p);
-        }
-    }
-
     updateFrequencyDisplays(frequencies) {
         // Limpiar el panel
         this.infoPanel.innerHTML = '';
         
-        if (frequencies.length === 0) {
-            // Mostrar estado vacío
-            const emptyItem = document.createElement('div');
-            emptyItem.className = 'info-item';
-            emptyItem.innerHTML = `
-                <span class="label">Frecuencia:</span>
-                <span class="value">-- Hz</span>
-            `;
-            this.infoPanel.appendChild(emptyItem);
-            
-            const emptyNote = document.createElement('div');
-            emptyNote.className = 'info-item';
-            emptyNote.innerHTML = `
-                <span class="label">Nota:</span>
-                <span class="value">--</span>
-            `;
-            this.infoPanel.appendChild(emptyNote);
-            return;
-        }
+        const color = '#667eea';
         
-        // Mostrar cada frecuencia detectada con su color
-        frequencies.forEach((frequency, index) => {
-            const color = this.playerColors[index % this.playerColors.length];
-            const note = this.pitchDetection.frequencyToNote(frequency);
+        // Crear contenedor (siempre usar el mismo formato)
+        const playerInfo = document.createElement('div');
+        playerInfo.className = 'player-info';
+        playerInfo.style.borderLeft = `4px solid ${color}`;
+        
+        if (frequencies.length === 0 || !frequencies[0]) {
+            // Mostrar estado vacío en el mismo formato
+            const freqItem = document.createElement('div');
+            freqItem.className = 'info-item';
+            freqItem.innerHTML = `
+                <span class="label">Frecuencia:</span>
+                <span class="value" style="color: ${color};">-- Hz</span>
+            `;
+            playerInfo.appendChild(freqItem);
             
-            // Crear contenedor para este jugador
-            const playerInfo = document.createElement('div');
-            playerInfo.className = 'player-info';
-            playerInfo.style.borderLeft = `4px solid ${color}`;
+            const noteItem = document.createElement('div');
+            noteItem.className = 'info-item';
+            noteItem.innerHTML = `
+                <span class="label">Nota:</span>
+                <span class="value" style="color: ${color};">--</span>
+            `;
+            playerInfo.appendChild(noteItem);
+        } else {
+            // Mostrar la frecuencia detectada
+            const frequency = frequencies[0];
+            const note = this.pitchDetection.frequencyToNote(frequency);
             
             // Frecuencia
             const freqItem = document.createElement('div');
             freqItem.className = 'info-item';
             freqItem.innerHTML = `
-                <span class="label">Jugador ${index + 1} - Frecuencia:</span>
+                <span class="label">Frecuencia:</span>
                 <span class="value" style="color: ${color};">${Math.round(frequency)} Hz</span>
             `;
             playerInfo.appendChild(freqItem);
@@ -308,13 +262,13 @@ class VoicePitchGame {
             const noteItem = document.createElement('div');
             noteItem.className = 'info-item';
             noteItem.innerHTML = `
-                <span class="label">Jugador ${index + 1} - Nota:</span>
+                <span class="label">Nota:</span>
                 <span class="value" style="color: ${color};">${note}</span>
             `;
             playerInfo.appendChild(noteItem);
-            
-            this.infoPanel.appendChild(playerInfo);
-        });
+        }
+        
+        this.infoPanel.appendChild(playerInfo);
     }
 
     updateCreatureUI() {
