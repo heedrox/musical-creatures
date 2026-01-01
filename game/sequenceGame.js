@@ -15,8 +15,8 @@ const FREQ_MIN = 80; // Hz mínimo válido
 const FREQ_MAX = 1200; // Hz máximo válido
 
 // Sistema de objetivo y estados
-const CALM_THRESHOLD = 0.5; // Semitonos: error máximo para estar en CALMA
-const TENSION_THRESHOLD = 1.5; // Semitonos: error máximo para estar en TENSION
+const CALM_THRESHOLD = 0.8; // Semitonos: error máximo para estar en CALMA (aumentado de 0.5)
+const TENSION_THRESHOLD = 2.0; // Semitonos: error máximo para estar en TENSION (aumentado de 1.5)
 const GRACE_SILENCE = 300; // ms de grace period sin frecuencias antes de CAOS
 
 // Sistema de vida

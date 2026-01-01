@@ -48,8 +48,8 @@
             font-weight: 700;
             color: #fbbf24;
             text-shadow: 
-                3px 3px 0 #f59e0b,
-                6px 6px 0 #92400e;
+                2px 2px 0 #000,
+                4px 4px 0 #f59e0b;
             letter-spacing: 2px;
             text-transform: uppercase;
         }
@@ -58,28 +58,37 @@
             padding: 12px 24px;
             background: #10b981;
             color: #fff;
-            border: 4px solid #059669;
+            border: 3px solid #000;
             font-size: 1em;
             font-weight: 700;
             cursor: pointer;
             text-transform: uppercase;
             box-shadow: 
-                0 4px 0 #047857,
+                0 4px 0 #000,
+                0 6px 0 #047857,
                 inset 0 2px 0 rgba(255, 255, 255, 0.3);
             transition: all 0.1s;
+            position: relative;
+        }
+        
+        .start-btn::before {
+            content: '▶';
+            margin-right: 6px;
         }
         
         .start-btn:hover {
             transform: translateY(2px);
             box-shadow: 
-                0 2px 0 #047857,
+                0 2px 0 #000,
+                0 4px 0 #047857,
                 inset 0 2px 0 rgba(255, 255, 255, 0.3);
         }
         
         .start-btn:active {
             transform: translateY(4px);
             box-shadow: 
-                0 0 0 #047857,
+                0 0 0 #000,
+                0 2px 0 #047857,
                 inset 0 2px 0 rgba(255, 255, 255, 0.3);
         }
         
@@ -130,9 +139,11 @@
             background: #1e1b4b;
             padding: 4px 8px;
             font-weight: 700;
-            border: 3px solid #f59e0b;
+            border: 3px solid #000;
             text-transform: uppercase;
-            text-shadow: 2px 2px 0 #92400e;
+            text-shadow: 
+                1px 1px 0 #000,
+                2px 2px 0 #f59e0b;
         }
         
         .frequency-line {
@@ -154,10 +165,12 @@
             font-size: 0.75em;
             color: #ef4444;
             font-weight: 700;
-            text-shadow: 2px 2px 0 #991b1b;
+            text-shadow: 
+                1px 1px 0 #000,
+                2px 2px 0 #991b1b;
             background: #1e1b4b;
             padding: 4px 8px;
-            border: 3px solid #dc2626;
+            border: 3px solid #000;
             text-transform: uppercase;
         }
         
@@ -185,10 +198,12 @@
             color: #10b981;
             background: #1e1b4b;
             padding: 4px 8px;
-            border: 3px solid #059669;
+            border: 3px solid #000;
             font-weight: 700;
             text-transform: uppercase;
-            text-shadow: 2px 2px 0 #047857;
+            text-shadow: 
+                1px 1px 0 #000,
+                2px 2px 0 #047857;
         }
         
         .graph-axes {
@@ -232,7 +247,9 @@
             letter-spacing: 2px;
             margin-bottom: 5px;
             font-weight: 700;
-            text-shadow: 2px 2px 0 #f59e0b;
+            text-shadow: 
+                1px 1px 0 #000,
+                2px 2px 0 #f59e0b;
         }
         
         .score-value {
@@ -240,8 +257,8 @@
             font-weight: 700;
             color: #fbbf24;
             text-shadow: 
-                3px 3px 0 #f59e0b,
-                6px 6px 0 #92400e;
+                2px 2px 0 #000,
+                4px 4px 0 #f59e0b;
             font-family: 'Courier New', monospace;
         }
         
@@ -297,7 +314,9 @@
             text-align: center;
             text-transform: uppercase;
             letter-spacing: 2px;
-            text-shadow: 2px 2px 0 #f59e0b;
+            text-shadow: 
+                1px 1px 0 #000,
+                2px 2px 0 #f59e0b;
         }
         
         .creature-life {
@@ -313,7 +332,9 @@
             font-weight: 700;
             text-align: center;
             text-transform: uppercase;
-            text-shadow: 2px 2px 0 #f59e0b;
+            text-shadow: 
+                1px 1px 0 #000,
+                2px 2px 0 #f59e0b;
         }
         
         .progress-bar {
@@ -358,7 +379,7 @@
     <div class="container">
         <div class="header">
             <h1>Criaturas Musicales</h1>
-            <button class="start-btn">▶ Iniciar</button>
+            <button class="start-btn">Iniciar</button>
         </div>
         
         <div class="main-content">
