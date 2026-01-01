@@ -44,8 +44,22 @@ export class GraphRenderer {
      */
     resize() {
         const rect = this.canvas.getBoundingClientRect();
-        this.canvas.width = rect.width;
-        this.canvas.height = rect.height;
+        let width = rect.width;
+        let height = rect.height;
+        
+        // Si el tamaño es 0 o muy pequeño, usar valores por defecto
+        if (!width || width < 100) {
+            width = 400;
+        }
+        if (!height || height < 100) {
+            height = 400;
+        }
+        
+        // Asegurar que el canvas tenga un tamaño válido
+        this.canvas.width = width;
+        this.canvas.height = height;
+        
+        // Forzar redibujado
         this.draw();
     }
 
@@ -73,8 +87,18 @@ export class GraphRenderer {
      * Dibuja la gráfica
      */
     draw() {
-        const width = this.canvas.width;
-        const height = this.canvas.height;
+        let width = this.canvas.width;
+        let height = this.canvas.height;
+        
+        // Si el canvas no tiene tamaño válido, usar valores por defecto
+        if (!width || width < 100) {
+            width = 400;
+            this.canvas.width = width;
+        }
+        if (!height || height < 100) {
+            height = 400;
+            this.canvas.height = height;
+        }
         
         // Limpiar canvas
         this.ctx.fillStyle = '#000000';
@@ -515,6 +539,18 @@ export class GraphRenderer {
         this.ctx.stroke();
 
         // No dibujar etiquetas de notas ni frecuencias
+    }
+
+    /**
+     * Reemplaza el historial completo con nuevos datos (útil para mostrar toda la historia en Game Over)
+     * @param {Array<Array<number>>} frequencyHistory - Historial completo de frecuencias
+     * @param {Array<number>} timeHistory - Historial completo de timestamps
+     */
+    replaceHistory(frequencyHistory, timeHistory) {
+        this.frequencyHistory = frequencyHistory.map(freq => Array.isArray(freq) ? [...freq] : [freq]);
+        this.timeHistory = [...timeHistory];
+        // Redibujar con toda la historia
+        this.draw();
     }
 
     /**

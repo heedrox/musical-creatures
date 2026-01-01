@@ -7,7 +7,7 @@
 body {
     font-family: 'Exo 2', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: #000000;
-    padding: 10px;
+    padding: 30px;
     color: #ffffff;
     min-height: 100vh;
     font-feature-settings: 'liga' 1, 'calt' 1;
@@ -125,16 +125,37 @@ body {
 
 .main-content {
     display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.game-over-section {
+    width: 100%;
+    order: 1;
+}
+
+.content-row {
+    display: flex;
     gap: 20px;
     align-items: flex-start;
+    order: 2;
+}
+
+.left-section {
+    flex: 0 0 33.333%;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
 }
 
 .graph-section {
-    flex: 1;
+    flex: 0 0 66.666%;
+    min-width: 400px;
 }
 
 .graph-container {
     width: 100%;
+    min-height: 400px;
     height: 400px;
     background: #000000;
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -146,15 +167,11 @@ body {
 #frequencyCanvas {
     width: 100%;
     height: 100%;
+    min-width: 300px;
+    min-height: 300px;
     display: block;
 }
 
-.right-section {
-    flex: 0 0 280px;
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
 
 .score-section {
     text-align: center;
@@ -179,13 +196,20 @@ body {
     color: #fbbf24;
 }
 
-.game-over-section {
-    width: 100%;
-    text-align: center;
+.game-over-content {
+    display: none;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 10px;
+}
+
+.game-over-content.show {
+    display: flex;
 }
 
 .game-over-text {
-    display: none;
     font-family: 'Orbitron', sans-serif;
     font-size: 1.8em;
     font-weight: 700;
@@ -195,9 +219,34 @@ body {
     text-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
 }
 
-.game-over-text.show {
-    display: block;
-    margin-top: 15px;
+.btn-share {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    color: #60a5fa;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-share:hover:not(:disabled) {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: rgba(59, 130, 246, 0.5);
+    color: #93c5fd;
+    transform: translateY(-2px);
+}
+
+.btn-share:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+.btn-share svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
 }
 
 .creature-container {
@@ -337,7 +386,9 @@ body {
 
 .footer {
     margin-top: 40px;
-    padding-top: 30px;
+    margin-left: 20px;
+    margin-right: 20px;
+    padding-top: 10px;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
     flex-direction: row;
@@ -399,21 +450,35 @@ body {
 }
 
 @media (max-width: 800px) {
+    body {
+        padding: 10px;
+    }
+    
     .main-content {
         flex-direction: column;
+        gap: 15px;
+    }
+    
+    .content-row {
+        flex-direction: column;
+    }
+    
+    .left-section {
+        flex: 1;
+        width: 100%;
+        flex-direction: row;
         gap: 15px;
     }
     
     .graph-section {
         order: 3;
         width: 100%;
+        min-width: 100%;
+        flex: 1;
     }
     
-    .right-section {
-        order: 1;
-        flex: 1;
-        width: 100%;
-        flex-direction: row;
+    .game-over-content {
+        flex-direction: column;
         gap: 15px;
     }
     
@@ -464,6 +529,25 @@ body {
         height: 18px;
     }
 
+    .game-over-content {
+        gap: 12px;
+    }
+
+    .game-over-text {
+        font-size: 1.5em;
+        letter-spacing: 2px;
+    }
+
+    .btn-share {
+        padding: 10px 20px;
+        font-size: 0.9em;
+    }
+
+    .btn-share svg {
+        width: 16px;
+        height: 16px;
+    }
+
     .header {
         flex-direction: row;
         align-items: center;
@@ -505,6 +589,8 @@ body {
 
     .footer {
         margin-top: 30px;
+        margin-left: 0;
+        margin-right: 0;
         padding-top: 20px;
         flex-direction: column;
         align-items: center;
@@ -690,7 +776,7 @@ body {
 
 @media (max-width: 480px) {
     .header h1 {
-        font-size: 1.5em;
+        font-size: 2em;
         letter-spacing: 0.5px;
         line-height: 1.2;
     }

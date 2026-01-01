@@ -5,6 +5,7 @@ import { AudioCapture } from './audio/audioCapture.js';
 import { PitchDetection } from './audio/pitchDetection.js';
 import { GraphRenderer } from './visualization/graphRenderer.js';
 import { updateSequenceGame, renderSequenceGame, getSequenceGameState, startSequenceGame, resetSequenceGame } from './game/sequenceGame.js';
+import html2canvas from 'html2canvas';
 
 class VoicePitchGame {
     constructor() {
@@ -14,6 +15,12 @@ class VoicePitchGame {
         this.isRunning = false;
         this.animationFrameId = null;
         this.lastFrameTime = null;
+        
+        // Historial completo de frecuencias desde el inicio del juego
+        this.fullFrequencyHistory = []; // Array de arrays: [[freq1, freq2], ...]
+        this.fullTimeHistory = []; // Array de timestamps relativos al inicio
+        this.gameStartTime = null; // Timestamp del inicio del juego
+        this.hasReplacedHistoryOnGameOver = false; // Bandera para evitar reemplazar múltiples veces
         
         this.initializeElements();
         this.setupEventListeners();
@@ -31,6 +38,9 @@ class VoicePitchGame {
         this.timeValue = document.getElementById('timeValue');
         this.creatureStatus = document.getElementById('creatureStatus');
         this.gameOverText = document.getElementById('gameOverText');
+        this.gameOverSection = document.querySelector('.game-over-section');
+        this.shareBtn = document.getElementById('shareBtn');
+        this.container = document.querySelector('.container');
         
         const canvas = document.getElementById('frequencyCanvas');
         this.graphRenderer = new GraphRenderer(canvas);
@@ -42,6 +52,24 @@ class VoicePitchGame {
         // Configurar tamaño del canvas de criatura
         this.resizeCreatureCanvas();
         window.addEventListener('resize', () => this.resizeCreatureCanvas());
+        
+        // Forzar redimensionamiento después de que todo esté cargado
+        const forceResize = () => {
+            this.graphRenderer.resize();
+            this.resizeCreatureCanvas();
+        };
+        
+        if (document.readyState === 'loading') {
+            window.addEventListener('load', forceResize);
+        } else {
+            // Si ya está cargado, forzar redimensionamiento después de un pequeño delay
+            setTimeout(forceResize, 100);
+        }
+        
+        // También forzar redimensionamiento cuando el DOM esté completamente listo
+        requestAnimationFrame(() => {
+            requestAnimationFrame(forceResize);
+        });
     }
     
     resizeCreatureCanvas() {
@@ -52,6 +80,11 @@ class VoicePitchGame {
 
     setupEventListeners() {
         this.startBtn.addEventListener('click', () => this.start());
+        
+        // Botón de compartir
+        if (this.shareBtn) {
+            this.shareBtn.addEventListener('click', () => this.shareGameOver());
+        }
         
         // Modal de ayuda
         if (this.helpBtn && this.helpModal) {
@@ -94,6 +127,46 @@ class VoicePitchGame {
 
     async start() {
         try {
+            // Si el juego ya está corriendo, verificar si podemos reiniciar
+            const gameState = getSequenceGameState();
+            const isGameOver = gameState.gamePhase === 'GAME_OVER' || gameState.isGameOver;
+            
+            // Si ya está corriendo y no es Game Over, no hacer nada
+            if (this.isRunning && !isGameOver) {
+                return;
+            }
+
+            // Si es Game Over, reiniciar el juego directamente sin detener el audio
+            if (this.isRunning && isGameOver) {
+                // Reiniciar juego sin detener el sistema de audio
+                const audioContext = this.audioCapture.audioContext || null;
+                startSequenceGame(audioContext);
+                
+                // Resetear historial completo
+                this.fullFrequencyHistory = [];
+                this.fullTimeHistory = [];
+                this.gameStartTime = performance.now();
+                this.hasReplacedHistoryOnGameOver = false;
+                
+                // Limpiar gráfico y visualización
+                this.graphRenderer.clear();
+                this.graphRenderer.clearTargets();
+                
+                // Ocultar Game Over
+                if (this.gameOverSection) {
+                    const gameOverContent = this.gameOverSection.querySelector('.game-over-content');
+                    if (gameOverContent) {
+                        gameOverContent.classList.remove('show');
+                    }
+                }
+                
+                // Deshabilitar botón de nuevo
+                this.startBtn.disabled = true;
+                
+                return;
+            }
+
+            // Inicialización normal (primera vez o después de stop)
             const result = await this.audioCapture.initialize();
             
             if (!result.success) {
@@ -112,11 +185,21 @@ class VoicePitchGame {
             const audioContext = this.audioCapture.audioContext || null;
             startSequenceGame(audioContext);
             
+            // Resetear historial completo al iniciar nuevo juego
+            this.fullFrequencyHistory = [];
+            this.fullTimeHistory = [];
+            this.gameStartTime = performance.now();
+            this.hasReplacedHistoryOnGameOver = false;
+            
             // Iniciar loop de análisis
             this.analyze();
             
         } catch (error) {
             console.error('Error al iniciar:', error);
+            // En caso de error, habilitar el botón nuevamente
+            if (this.startBtn) {
+                this.startBtn.disabled = false;
+            }
         }
     }
 
@@ -133,6 +216,12 @@ class VoicePitchGame {
         
         // Limpiar visualización de objetivo
         this.graphRenderer.clearTargets();
+        
+        // Limpiar historial completo
+        this.fullFrequencyHistory = [];
+        this.fullTimeHistory = [];
+        this.gameStartTime = null;
+        this.hasReplacedHistoryOnGameOver = false;
         
         // Reiniciar juego
         resetSequenceGame();
@@ -160,13 +249,137 @@ class VoicePitchGame {
         }
         
         // Ocultar Game Over
-        if (this.gameOverText) {
-            this.gameOverText.classList.remove('show');
+        if (this.gameOverSection) {
+            const gameOverContent = this.gameOverSection.querySelector('.game-over-content');
+            if (gameOverContent) {
+                gameOverContent.classList.remove('show');
+            }
         }
         
         // Limpiar canvas de criatura
         if (this.creatureCtx) {
             this.creatureCtx.clearRect(0, 0, this.creatureCanvas.width, this.creatureCanvas.height);
+        }
+    }
+
+    async shareGameOver() {
+        if (!this.container || !this.shareBtn) {
+            return;
+        }
+
+        // Deshabilitar botón y mostrar estado de carga
+        const originalText = this.shareBtn.querySelector('span').textContent;
+        const shareIcon = this.shareBtn.querySelector('svg');
+        
+        this.shareBtn.disabled = true;
+        this.shareBtn.querySelector('span').textContent = 'Capturando...';
+        
+        // Ocultar icono mientras carga
+        if (shareIcon) {
+            shareIcon.style.opacity = '0.5';
+        }
+
+        try {
+            // Capturar screenshot del contenedor
+            const canvas = await html2canvas(this.container, {
+                backgroundColor: '#0a0a0a',
+                scale: 2, // Mayor resolución para mejor calidad
+                logging: false,
+                useCORS: true,
+                allowTaint: true
+            });
+
+            // Convertir canvas a blob
+            canvas.toBlob(async (blob) => {
+                if (!blob) {
+                    throw new Error('Error al generar la imagen');
+                }
+
+                const gameState = getSequenceGameState();
+                const score = gameState.survivalTime ? `${gameState.survivalTime.toFixed(1)}s` : '0.0s';
+                const shareText = `¡Conseguí ${score} en Criaturas Musicales! 🎵`;
+
+                // Detectar si estamos en móvil y si el navegador soporta Web Share API
+                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                const supportsShare = navigator.share && navigator.canShare;
+
+                if (isMobile && supportsShare) {
+                    // Usar Web Share API en móvil
+                    try {
+                        const file = new File([blob], 'criaturas-musicales-resultado.png', { type: 'image/png' });
+                        
+                        if (navigator.canShare({ files: [file] })) {
+                            await navigator.share({
+                                files: [file],
+                                title: 'Criaturas Musicales',
+                                text: shareText
+                            });
+                        } else {
+                            // Fallback: compartir solo texto
+                            await navigator.share({
+                                title: 'Criaturas Musicales',
+                                text: shareText
+                            });
+                        }
+                    } catch (error) {
+                        if (error.name !== 'AbortError') {
+                            // Si el usuario cancela, no mostrar error
+                            throw error;
+                        }
+                    }
+                } else {
+                    // Desktop: descargar imagen o copiar al portapapeles
+                    // Intentar copiar al portapapeles primero
+                    try {
+                        const clipboardItem = new ClipboardItem({ 'image/png': blob });
+                        await navigator.clipboard.write([clipboardItem]);
+                        // Mostrar mensaje temporal
+                        this.shareBtn.querySelector('span').textContent = '¡Copiado!';
+                        setTimeout(() => {
+                            this.shareBtn.querySelector('span').textContent = originalText;
+                        }, 2000);
+                    } catch (clipboardError) {
+                        // Fallback: descargar imagen
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `criaturas-musicales-${score}.png`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                        
+                        this.shareBtn.querySelector('span').textContent = 'Descargado';
+                        setTimeout(() => {
+                            this.shareBtn.querySelector('span').textContent = originalText;
+                        }, 2000);
+                    }
+                }
+
+                // Restaurar botón
+                this.shareBtn.disabled = false;
+                this.shareBtn.querySelector('span').textContent = originalText;
+                if (shareIcon) {
+                    shareIcon.style.opacity = '1';
+                }
+
+            }, 'image/png', 0.95);
+
+        } catch (error) {
+            console.error('Error al compartir:', error);
+            
+            // Restaurar botón
+            this.shareBtn.disabled = false;
+            const errorText = this.shareBtn.querySelector('span');
+            errorText.textContent = 'Error';
+            if (shareIcon) {
+                shareIcon.style.opacity = '1';
+            }
+            
+            // Restaurar texto original después de 2 segundos
+            setTimeout(() => {
+                errorText.textContent = originalText;
+            }, 2000);
         }
     }
 
@@ -194,6 +407,13 @@ class VoicePitchGame {
                 const frequency = this.pitchDetection.detectPitch(timeData);
                 if (frequency) {
                     frequencies = [frequency];
+                }
+                
+                // Registrar en historial completo (desde el inicio)
+                if (this.gameStartTime !== null) {
+                    const relativeTime = performance.now() - this.gameStartTime;
+                    this.fullFrequencyHistory.push(frequencies);
+                    this.fullTimeHistory.push(relativeTime);
                 }
                 
                 // Actualizar secuencia
@@ -251,6 +471,15 @@ class VoicePitchGame {
 
     updateCreatureUI() {
         const gameState = getSequenceGameState();
+        
+        // Detectar Game Over y reemplazar historial del gráfico con toda la historia
+        if ((gameState.gamePhase === 'GAME_OVER' || gameState.isGameOver) && 
+            this.fullFrequencyHistory.length > 0 && 
+            !this.hasReplacedHistoryOnGameOver) {
+            // Reemplazar el historial limitado del gráfico con toda la historia completa
+            this.graphRenderer.replaceHistory(this.fullFrequencyHistory, this.fullTimeHistory);
+            this.hasReplacedHistoryOnGameOver = true; // Marcar como hecho para evitar hacerlo múltiples veces
+        }
         
         // Actualizar texto de estado según la fase
         if (this.statusText) {
@@ -315,12 +544,19 @@ class VoicePitchGame {
             }
         }
         
-        // Mostrar/ocultar Game Over
-        if (this.gameOverText) {
-            if (gameState.gamePhase === 'GAME_OVER' || gameState.isGameOver) {
-                this.gameOverText.classList.add('show');
-            } else {
-                this.gameOverText.classList.remove('show');
+        // Mostrar/ocultar Game Over y habilitar botón de iniciar
+        if (this.gameOverSection) {
+            const gameOverContent = this.gameOverSection.querySelector('.game-over-content');
+            if (gameOverContent) {
+                if (gameState.gamePhase === 'GAME_OVER' || gameState.isGameOver) {
+                    gameOverContent.classList.add('show');
+                    // Habilitar botón de iniciar para permitir reiniciar el juego
+                    if (this.startBtn) {
+                        this.startBtn.disabled = false;
+                    }
+                } else {
+                    gameOverContent.classList.remove('show');
+                }
             }
         }
     }
