@@ -31,7 +31,7 @@ body {
     align-items: center;
     padding-bottom: 20px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    margin-bottom: 30px;
+    margin-bottom: 0;
     gap: 15px;
     flex-wrap: nowrap;
 }
@@ -177,6 +177,27 @@ body {
     font-size: 2.2em;
     font-weight: 600;
     color: #fbbf24;
+}
+
+.game-over-section {
+    width: 100%;
+    text-align: center;
+}
+
+.game-over-text {
+    display: none;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.8em;
+    font-weight: 700;
+    color: #ef4444;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    text-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+}
+
+.game-over-text.show {
+    display: block;
+    margin-top: 15px;
 }
 
 .creature-container {

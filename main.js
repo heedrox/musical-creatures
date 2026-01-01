@@ -30,6 +30,7 @@ class VoicePitchGame {
         this.lifeValueDesktop = document.getElementById('lifeValueDesktop');
         this.timeValue = document.getElementById('timeValue');
         this.creatureStatus = document.getElementById('creatureStatus');
+        this.gameOverText = document.getElementById('gameOverText');
         
         const canvas = document.getElementById('frequencyCanvas');
         this.graphRenderer = new GraphRenderer(canvas);
@@ -158,6 +159,11 @@ class VoicePitchGame {
             this.timeValue.textContent = '0.0s';
         }
         
+        // Ocultar Game Over
+        if (this.gameOverText) {
+            this.gameOverText.classList.remove('show');
+        }
+        
         // Limpiar canvas de criatura
         if (this.creatureCtx) {
             this.creatureCtx.clearRect(0, 0, this.creatureCanvas.width, this.creatureCanvas.height);
@@ -251,8 +257,8 @@ class VoicePitchGame {
             if (gameState.gamePhase === 'PLAYING_NOTES') {
                 this.statusText.textContent = 'ESCUCHA';
             } else if (gameState.gamePhase === 'COUNTDOWN') {
-                // Durante countdown, ocultar el texto ya que el número se muestra grande en el canvas
-                this.statusText.textContent = '';
+                // Durante countdown, mostrar "PREPÁRATE" mientras el número grande se muestra en el canvas
+                this.statusText.textContent = 'PREPÁRATE';
             } else if (gameState.gamePhase === 'PLAYING') {
                 const statusText = gameState.state === 'CALMA' ? 'CALMA' :
                                   gameState.state === 'TENSION' ? 'TENSIÓN' :
@@ -306,6 +312,15 @@ class VoicePitchGame {
                 this.timeValue.textContent = `${gameState.survivalTime.toFixed(1)}s`;
             } else {
                 this.timeValue.textContent = '0.0s';
+            }
+        }
+        
+        // Mostrar/ocultar Game Over
+        if (this.gameOverText) {
+            if (gameState.gamePhase === 'GAME_OVER' || gameState.isGameOver) {
+                this.gameOverText.classList.add('show');
+            } else {
+                this.gameOverText.classList.remove('show');
             }
         }
     }
