@@ -13,10 +13,10 @@ export class GraphRenderer {
         // Colores para cada frecuencia (hasta 5 jugadores)
         this.colors = ['#667eea', '#f093fb', '#4facfe', '#00f2fe', '#43e97b'];
         
-        // Rango fijo: 3 octavas desde C3 hasta B5
-        // C3 ≈ 130.81 Hz, B5 ≈ 987.77 Hz
-        this.minFrequency = 130.81;  // C3
-        this.maxFrequency = 987.77;  // B5
+        // Rango fijo: desde C2 hasta G4
+        // C2 ≈ 65.41 Hz, G4 ≈ 392.00 Hz
+        this.minFrequency = 65.41;   // C2
+        this.maxFrequency = 392.00;  // G4
         this.freqRange = this.maxFrequency - this.minFrequency;
         
         // Para escala logarítmica (hace que las notas se vean equidistantes)
@@ -87,7 +87,7 @@ export class GraphRenderer {
         const graphWidth = width - padding * 2;
         const graphHeight = height - padding * 2;
         
-        // Usar rango fijo de 3 octavas (C3 a B5)
+        // Usar rango fijo desde C2 hasta G4
         const minFreq = this.minFrequency;
         const maxFreq = this.maxFrequency;
         const freqRange = this.freqRange;
@@ -211,13 +211,18 @@ export class GraphRenderer {
         this.ctx.font = '11px monospace';
         this.ctx.fillStyle = '#888';
         
-        // Calcular las frecuencias de las notas en 3 octavas (C3 a B5)
+        // Calcular las frecuencias de las notas desde C2 hasta G4
         const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
         const notes = [];
         
-        // Generar todas las notas desde C3 hasta B5
-        for (let octave = 3; octave <= 5; octave++) {
+        // Generar todas las notas desde C2 hasta G4
+        for (let octave = 2; octave <= 4; octave++) {
             for (const noteName of noteNames) {
+                // En la octava 4, solo incluir hasta G
+                if (octave === 4 && noteNames.indexOf(noteName) > noteNames.indexOf('G')) {
+                    break;
+                }
+                
                 const octaveNote = `${noteName}${octave}`;
                 const frequency = this.noteToFrequency(noteName, octave);
                 

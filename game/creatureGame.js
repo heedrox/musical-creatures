@@ -139,13 +139,13 @@ function midiToFrequency(midi) {
 }
 
 /**
- * Selecciona una nota objetivo aleatoria en el rango C3-B5 (MIDI 48-83)
+ * Selecciona una nota objetivo aleatoria en el rango C2-G4 (MIDI 36-67)
  * @returns {number} MIDI de la nota objetivo
  */
 function selectRandomTargetNote() {
-    // C3 = MIDI 48, B5 = MIDI 83 (cromática completa)
-    const minMidi = 48;
-    const maxMidi = 83;
+    // C2 = MIDI 36, G4 = MIDI 67 (cromática completa)
+    const minMidi = 36;
+    const maxMidi = 67;
     return Math.floor(Math.random() * (maxMidi - minMidi + 1)) + minMidi;
 }
 
