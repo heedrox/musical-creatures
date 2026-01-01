@@ -11,7 +11,7 @@ export class GraphRenderer {
         this.timeHistory = [];
         
         // Color para la frecuencia detectada
-        this.colors = ['#667eea'];
+        this.colors = ['#ef4444'];
         
         // Rango fijo: desde F2 hasta C5
         // F2 ≈ 87.31 Hz, C5 ≈ 523.25 Hz
@@ -77,7 +77,7 @@ export class GraphRenderer {
         const height = this.canvas.height;
         
         // Limpiar canvas
-        this.ctx.fillStyle = '#0f0f1e';
+        this.ctx.fillStyle = '#000000';
         this.ctx.fillRect(0, 0, width, height);
         
         const padding = 20;
@@ -231,10 +231,10 @@ export class GraphRenderer {
      * Dibuja la rejilla y etiquetas con notas musicales
      */
     drawGrid(minFreq, maxFreq, padding, graphHeight) {
-        this.ctx.strokeStyle = '#2a2a3e';
+        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
         this.ctx.lineWidth = 1;
         this.ctx.font = '11px monospace';
-        this.ctx.fillStyle = '#888';
+        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
         
         // Calcular las frecuencias de las notas desde F2 hasta C5
         const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -273,7 +273,7 @@ export class GraphRenderer {
             const isOctaveStart = note.noteName === 'C';
             const isImportantNote = isOctaveStart || note.noteName === 'A' || note.noteName === 'E';
             
-            this.ctx.strokeStyle = isOctaveStart ? '#3a3a4e' : '#2a2a3e';
+            this.ctx.strokeStyle = isOctaveStart ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.05)';
             this.ctx.lineWidth = isOctaveStart ? 1.5 : 1;
             
             // Línea
@@ -286,8 +286,8 @@ export class GraphRenderer {
         }
         
         // Restaurar estilo
-        this.ctx.strokeStyle = '#2a2a3e';
-        this.ctx.fillStyle = '#888';
+        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
     }
 
     /**
@@ -355,9 +355,16 @@ export class GraphRenderer {
         const yMax = this.canvas.height - padding - (normalizedMinFreq * graphHeight);
         const zoneHeight = yMax - yMin;
 
-        // Dibujar rectángulo semitransparente
-        this.ctx.fillStyle = 'rgba(251, 191, 36, 0.15)';
+        // Dibujar rectángulo semitransparente (zona segura - verde)
+        this.ctx.fillStyle = 'rgba(34, 197, 94, 0.15)';
         this.ctx.fillRect(padding, yMin, graphWidth, zoneHeight);
+        
+        // Dibujar bordes de la zona segura
+        this.ctx.strokeStyle = '#22c55e';
+        this.ctx.lineWidth = 2;
+        this.ctx.setLineDash([5, 5]);
+        this.ctx.strokeRect(padding, yMin, graphWidth, zoneHeight);
+        this.ctx.setLineDash([]);
     }
 
     /**
@@ -393,9 +400,16 @@ export class GraphRenderer {
             const yMax = this.canvas.height - padding - (normalizedMinFreq * graphHeight);
             const zoneHeight = yMax - yMin;
             
-            // Dibujar rectángulo semitransparente
-            this.ctx.fillStyle = 'rgba(251, 191, 36, 0.15)';
+            // Dibujar rectángulo semitransparente (zona segura - verde)
+            this.ctx.fillStyle = 'rgba(34, 197, 94, 0.15)';
             this.ctx.fillRect(padding, yMin, graphWidth, zoneHeight);
+            
+            // Dibujar bordes de la zona segura
+            this.ctx.strokeStyle = '#22c55e';
+            this.ctx.lineWidth = 2;
+            this.ctx.setLineDash([5, 5]);
+            this.ctx.strokeRect(padding, yMin, graphWidth, zoneHeight);
+            this.ctx.setLineDash([]);
         }
     }
 

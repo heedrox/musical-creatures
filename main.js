@@ -25,21 +25,36 @@ class VoicePitchGame {
         this.stopBtn = document.getElementById('stopBtn');
         this.statusEl = document.getElementById('status');
         this.infoPanel = document.getElementById('infoPanel');
-        this.legendEl = document.getElementById('legend');
         this.gameModeToggle = document.getElementById('gameModeToggle');
         this.statusText = document.getElementById('statusText');
         this.energyBar = document.getElementById('energyBar');
+        this.energyBarDesktop = document.getElementById('energyBarDesktop');
         this.lifeValue = document.getElementById('lifeValue');
+        this.lifeValueDesktop = document.getElementById('lifeValueDesktop');
         this.timeValue = document.getElementById('timeValue');
-        this.noteValue = document.getElementById('noteValue');
+        this.creatureStatus = document.getElementById('creatureStatus');
         
         const canvas = document.getElementById('frequencyCanvas');
         this.graphRenderer = new GraphRenderer(canvas);
+        
+        const creatureCanvas = document.getElementById('creatureCanvas');
+        this.creatureCanvas = creatureCanvas;
+        this.creatureCtx = creatureCanvas.getContext('2d');
+        
+        // Configurar tamaño del canvas de criatura
+        this.resizeCreatureCanvas();
+        window.addEventListener('resize', () => this.resizeCreatureCanvas());
         
         // Inicializar toggle de modo juego
         if (this.gameModeToggle) {
             this.gameModeToggle.checked = this.gameMode;
         }
+    }
+    
+    resizeCreatureCanvas() {
+        const rect = this.creatureCanvas.getBoundingClientRect();
+        this.creatureCanvas.width = rect.width;
+        this.creatureCanvas.height = rect.height;
     }
 
     setupEventListeners() {
@@ -51,9 +66,8 @@ class VoicePitchGame {
             this.gameModeToggle.addEventListener('change', (e) => {
                 this.gameMode = e.target.checked;
                 // Mostrar/ocultar display de criatura
-                const creatureStatus = document.getElementById('creatureStatus');
-                if (creatureStatus) {
-                    creatureStatus.style.display = this.gameMode ? 'block' : 'none';
+                if (this.creatureStatus) {
+                    this.creatureStatus.style.display = this.gameMode ? 'flex' : 'none';
                 }
                 if (this.isRunning) {
                     // Limpiar canvas al cambiar de modo
@@ -63,9 +77,8 @@ class VoicePitchGame {
         }
         
         // Inicializar visibilidad del display de criatura
-        const creatureStatus = document.getElementById('creatureStatus');
-        if (creatureStatus) {
-            creatureStatus.style.display = this.gameMode ? 'block' : 'none';
+        if (this.creatureStatus) {
+            this.creatureStatus.style.display = this.gameMode ? 'flex' : 'none';
         }
     }
 
@@ -133,20 +146,27 @@ class VoicePitchGame {
         
         // Resetear UI de criatura
         if (this.statusText) {
-            this.statusText.textContent = 'CALMA 😌';
+            this.statusText.textContent = 'CALMA';
         }
         if (this.energyBar) {
             this.energyBar.style.width = '100%';
-            this.energyBar.style.backgroundColor = '#4ade80';
+        }
+        if (this.energyBarDesktop) {
+            this.energyBarDesktop.style.width = '100%';
         }
         if (this.lifeValue) {
             this.lifeValue.textContent = '100%';
         }
+        if (this.lifeValueDesktop) {
+            this.lifeValueDesktop.textContent = '100%';
+        }
         if (this.timeValue) {
             this.timeValue.textContent = '0.0s';
         }
-        if (this.noteValue) {
-            this.noteValue.textContent = '--';
+        
+        // Limpiar canvas de criatura
+        if (this.creatureCtx) {
+            this.creatureCtx.clearRect(0, 0, this.creatureCanvas.width, this.creatureCanvas.height);
         }
     }
 
@@ -222,10 +242,11 @@ class VoicePitchGame {
                     this.updateFrequencyDisplays([]);
                 }
                 
-                // Renderizar criatura encima del gráfico (siempre, incluso en game over para mostrar overlay)
-                const ctx = this.graphRenderer.ctx;
-                const canvas = this.graphRenderer.canvas;
-                renderSequenceGame(ctx, canvas.width, canvas.height);
+                // Renderizar criatura en canvas separado
+                this.resizeCreatureCanvas();
+                // Limpiar canvas de criatura antes de renderizar
+                this.creatureCtx.clearRect(0, 0, this.creatureCanvas.width, this.creatureCanvas.height);
+                renderSequenceGame(this.creatureCtx, this.creatureCanvas.width, this.creatureCanvas.height);
                 
                 // Actualizar UI de estado
                 this.updateCreatureUI();
@@ -259,11 +280,17 @@ class VoicePitchGame {
         // Cambiar color según el tipo
         this.statusEl.className = 'status';
         if (type === 'error') {
-            this.statusEl.style.background = '#fee';
-            this.statusEl.style.color = '#c33';
+            this.statusEl.style.background = 'rgba(239, 68, 68, 0.1)';
+            this.statusEl.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+            this.statusEl.style.color = '#ef4444';
         } else if (type === 'success') {
-            this.statusEl.style.background = '#efe';
-            this.statusEl.style.color = '#3c3';
+            this.statusEl.style.background = 'rgba(34, 197, 94, 0.1)';
+            this.statusEl.style.borderColor = 'rgba(34, 197, 94, 0.3)';
+            this.statusEl.style.color = '#22c55e';
+        } else {
+            this.statusEl.style.background = 'rgba(10, 10, 10, 0.5)';
+            this.statusEl.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+            this.statusEl.style.color = 'rgba(255, 255, 255, 0.7)';
         }
     }
 
@@ -271,7 +298,7 @@ class VoicePitchGame {
         // Limpiar el panel
         this.infoPanel.innerHTML = '';
         
-        const color = '#667eea';
+        const color = '#ef4444';
         
         // Crear contenedor (siempre usar el mismo formato)
         const playerInfo = document.createElement('div');
@@ -328,64 +355,51 @@ class VoicePitchGame {
         // Actualizar texto de estado según la fase
         if (this.statusText) {
             if (gameState.gamePhase === 'PLAYING_NOTES') {
-                this.statusText.textContent = 'ESCUCHA 🎵';
+                this.statusText.textContent = 'ESCUCHA';
             } else if (gameState.gamePhase === 'COUNTDOWN') {
                 this.statusText.textContent = `PREPÁRATE ${gameState.countdownNumber}`;
             } else if (gameState.gamePhase === 'PLAYING') {
-                const statusText = gameState.state === 'CALMA' ? 'CALMA 😌' :
-                                  gameState.state === 'TENSION' ? 'TENSIÓN 😬' :
-                                  'CAOS 🤯';
+                const statusText = gameState.state === 'CALMA' ? 'CALMA' :
+                                  gameState.state === 'TENSION' ? 'TENSIÓN' :
+                                  'CAOS';
                 this.statusText.textContent = statusText;
             } else {
-                this.statusText.textContent = 'CALMA 😌';
+                this.statusText.textContent = 'CALMA';
             }
         }
         
-        // Actualizar barra de vida (solo durante PLAYING)
-        if (this.energyBar) {
+        // Actualizar barras de vida (solo durante PLAYING)
+        const updateBar = (bar) => {
+            if (!bar) return;
             if (gameState.gamePhase === 'PLAYING') {
                 const lifePercent = Math.round(gameState.life * 100);
-                this.energyBar.style.width = `${lifePercent}%`;
-                
-                // Cambiar color según vida
-                if (gameState.life > 0.5) {
-                    this.energyBar.style.backgroundColor = '#4ade80';
-                } else if (gameState.life > 0.25) {
-                    this.energyBar.style.backgroundColor = '#fbbf24';
-                } else {
-                    this.energyBar.style.backgroundColor = '#f87171';
-                }
+                bar.style.width = `${lifePercent}%`;
             } else {
-                // Durante otras fases, mantener la barra al 100%
-                this.energyBar.style.width = '100%';
-                this.energyBar.style.backgroundColor = '#4ade80';
+                bar.style.width = '100%';
             }
-        }
+        };
+        
+        updateBar(this.energyBar);
+        updateBar(this.energyBarDesktop);
         
         // Actualizar valores de información del juego (solo durante PLAYING)
-        if (this.lifeValue) {
+        const updateLifeValue = (lifeEl) => {
+            if (!lifeEl) return;
             if (gameState.gamePhase === 'PLAYING') {
-                this.lifeValue.textContent = `${Math.round(gameState.life * 100)}%`;
+                lifeEl.textContent = `${Math.round(gameState.life * 100)}%`;
             } else {
-                this.lifeValue.textContent = '100%';
+                lifeEl.textContent = '100%';
             }
-        }
+        };
+        
+        updateLifeValue(this.lifeValue);
+        updateLifeValue(this.lifeValueDesktop);
         
         if (this.timeValue) {
             if (gameState.gamePhase === 'PLAYING') {
                 this.timeValue.textContent = `${gameState.survivalTime.toFixed(1)}s`;
             } else {
                 this.timeValue.textContent = '0.0s';
-            }
-        }
-        
-        if (this.noteValue) {
-            if (gameState.gamePhase === 'PLAYING' && gameState.currentTargetNoteName) {
-                this.noteValue.textContent = `${gameState.currentTargetNoteName} (${gameState.currentNoteIndex + 1}/${gameState.totalNotes})`;
-            } else if (gameState.gamePhase === 'PLAYING_NOTES' || gameState.gamePhase === 'COUNTDOWN') {
-                this.noteValue.textContent = 'Espera...';
-            } else {
-                this.noteValue.textContent = '--';
             }
         }
     }
