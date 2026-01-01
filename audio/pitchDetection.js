@@ -1,9 +1,10 @@
 /**
  * Módulo de detección de pitch (frecuencia fundamental)
  * Usa Pitchfinder con algoritmo YIN para detección estable de pitch
+ * AMDF como fallback si YIN falla
  * Solo detecta una frecuencia (un solo jugador)
  */
-import { YIN } from 'pitchfinder';
+import { YIN, AMDF } from 'pitchfinder';
 
 export class PitchDetection {
     constructor(sampleRate = 44100) {
@@ -11,7 +12,8 @@ export class PitchDetection {
         this.minFrequency = 80;  // Frecuencia mínima (voz grave)
         this.maxFrequency = 1000; // Frecuencia máxima (voz aguda)
         
-        // Inicializar detector de Pitchfinder usando YIN (excelente para voz)
+        // Inicializar detectores de Pitchfinder
+        // YIN es excelente para voz, AMDF como fallback
         this.yinDetector = YIN({ 
             sampleRate: this.sampleRate,
             threshold: 0.1,
@@ -19,11 +21,15 @@ export class PitchDetection {
             maxFrequency: this.maxFrequency
         });
         
-        this.primaryDetector = this.yinDetector;
+        this.amdfDetector = AMDF({
+            sampleRate: this.sampleRate,
+            minFrequency: this.minFrequency,
+            maxFrequency: this.maxFrequency
+        });
     }
 
     /**
-     * Detecta la frecuencia fundamental usando Pitchfinder (YIN)
+     * Detecta la frecuencia fundamental usando Pitchfinder (YIN con fallback AMDF)
      * @param {Float32Array} timeData - Datos de tiempo del audio
      * @returns {number|null} Frecuencia en Hz o null si no se detecta
      */
@@ -36,9 +42,16 @@ export class PitchDetection {
             // Convertir Float32Array a Array normal (Pitchfinder lo requiere)
             const audioData = Array.from(timeData);
             
-            const frequency = this.primaryDetector(audioData);
+            // Intentar primero con YIN (más preciso para voz)
+            let frequency = this.yinDetector(audioData);
             
-            // Pitchfinder puede devolver null o undefined si no detecta
+            // Si YIN falla, intentar con AMDF como fallback
+            if (!frequency || frequency <= 0 || 
+                frequency < this.minFrequency || frequency > this.maxFrequency) {
+                frequency = this.amdfDetector(audioData);
+            }
+            
+            // Validar que la frecuencia está en el rango válido
             if (frequency && frequency > 0 && 
                 frequency >= this.minFrequency && 
                 frequency <= this.maxFrequency) {
@@ -84,7 +97,7 @@ export class PitchDetection {
     setSampleRate(sampleRate) {
         this.sampleRate = sampleRate;
         
-        // Recrear detector con la nueva frecuencia de muestreo
+        // Recrear detectores con la nueva frecuencia de muestreo
         this.yinDetector = YIN({ 
             sampleRate: this.sampleRate,
             threshold: 0.1,
@@ -92,7 +105,11 @@ export class PitchDetection {
             maxFrequency: this.maxFrequency
         });
         
-        this.primaryDetector = this.yinDetector;
+        this.amdfDetector = AMDF({
+            sampleRate: this.sampleRate,
+            minFrequency: this.minFrequency,
+            maxFrequency: this.maxFrequency
+        });
     }
 }
 
